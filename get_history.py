@@ -1,13 +1,14 @@
-from datetime               import  datetime
-from enum                   import  IntEnum
-from bisect                 import  bisect_left
-from os.path                import  join
-from polars                 import  Config, read_csv
-import plotly.graph_objects as      go 
-from sys                    import  argv
+from    datetime                import  datetime
+from    enum                    import  IntEnum
+from    bisect                  import  bisect_left
+from    os.path                 import  join
+from    polars                  import  col, Config, Datetime, read_csv
+import  plotly.graph_objects    as      go 
+from    sys                     import  argv
+from    util                    import  adjust_tz
 
 
-# python get_history.py 20240709_perf ohlcv-1s
+# python get_history.py 20240709_perf ohlcv-1s Europe/Berlin 1
 
 
 class trade_row(IntEnum):
@@ -26,7 +27,8 @@ class trade_row(IntEnum):
     soldTimestamp       = 11
     duration            = 12
 
-EUR_DT_FMT  = "%m/%d/%Y %H:%M:%S" 
+
+TV_DT_FMT   = "%m/%d/%Y %H:%M:%S" 
 DBN_DT_FMT  = "%Y-%m-%dT%H:%M:%S"
 SYM_MAP     = {}
 
@@ -38,22 +40,30 @@ if __name__ == "__main__":
 
     fn      = argv[1]
     schema  = argv[2]
-    debug   = int(argv[3])
+    tz      = argv[3]
+    debug   = int(argv[4])
     trades  = read_csv(join(".", "csvs", f"{fn}.csv"))
+    trades  = trades.with_columns(
+                [
+                    col("boughtTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("boughtTimestamp"),
+                    col("soldTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("soldTimestamp")
+                ]
+            )
     symbols = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
-
-    #print(df)
 
     for symbol in symbols:
 
         ohlcv       = read_csv(f"../databento/csvs/{symbol}.c.0_{schema}.csv")
+        ohlcv       = adjust_tz(ohlcv, "ts_event", "ts_event", DBN_DT_FMT, tz)
         ts          = [ ts_.split(".")[0] for ts_ in list(ohlcv["ts_event"]) ]
         position    = [ 0 for _ in ts ]
 
         SYM_MAP[symbol] = {
             "ts":       ts,
             "pos":      position,
-            "close":    list(ohlcv["close"])
+            "close":    list(ohlcv["close"]),
+            "start":    None,
+            "end":      None
         }
     
     trades = trades.rows()
@@ -67,17 +77,25 @@ if __name__ == "__main__":
                         trade[trade_row.boughtTimestamp],
                         trade[trade_row.soldTimestamp]
                     ])
-        i_ts        = datetime.strptime(i_ts, EUR_DT_FMT).strftime(DBN_DT_FMT)
-        j_ts        = datetime.strptime(j_ts, EUR_DT_FMT).strftime(DBN_DT_FMT)
         sym_ts      = SYM_MAP[symbol]["ts"]
         sym_pos     = SYM_MAP[symbol]["pos"]
 
         i           = bisect_left(sym_ts, i_ts)
         j           = bisect_left(sym_ts, j_ts)
 
-        if i >= len(sym_pos) or j >= len(sym_pos):
+        # truncate excess data
 
-            # trade past latest data
+        if not SYM_MAP[symbol]["start"]:
+
+            SYM_MAP[symbol]["start"] = i - 3600
+        
+        if trade == trades[-1]:
+
+            SYM_MAP[symbol]["end"] = j + 3600
+
+        if i not in range(len(sym_pos)) or j not in range(len(sym_pos)):
+
+            # no data for trade
 
             break
 
@@ -92,10 +110,13 @@ if __name__ == "__main__":
 
         for sym, data in SYM_MAP.items():
 
+            i = data["start"]
+            j = data["end"]
+
             fig = go.Figure()
 
-            X = data["ts"]
-            Y = data["close"]
+            X = data["ts"][i:j]
+            Y = data["close"][i:j]
 
             fig.add_trace(
                 go.Scattergl(
@@ -106,7 +127,7 @@ if __name__ == "__main__":
                 )
             )
 
-            pos     = data["pos"]
+            pos     = data["pos"][i:j]
             arrow   = {
                 "x":            None,
                 "y":            None,
