@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
                 elif cur_pos < prev_pos:
 
-                    arrow["text"]       = f"-{cur_pos - prev_pos}"
+                    arrow["text"]       = f"{cur_pos - prev_pos}"
                     arrow["font"]       = { "color": "#FF0000" }
                     arrow["x"]          = X[i]
                     arrow["y"]          = Y[i]
