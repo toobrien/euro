@@ -50,6 +50,7 @@ if __name__ == "__main__":
                 ]
             )
     symbols = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
+    history = []
 
     for symbol in symbols:
 
@@ -103,8 +104,20 @@ if __name__ == "__main__":
 
             sym_pos[k] += qty
 
+        history.append(f"{symbol},{qty},{i},{j}\n")
+
         #print(i_ts, sym_ts[i])
         #print(j_ts, sym_ts[j])
+
+    if history:
+
+        with open(f"./{fn}_history.csv", "w") as fd:
+
+            fd.write("symbol,qty,start,end\n")
+
+            for line in history:
+
+                fd.write(line)
 
     if debug:
 
