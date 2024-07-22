@@ -2,13 +2,14 @@ from    datetime                import  datetime
 from    enum                    import  IntEnum
 from    bisect                  import  bisect_left
 from    os.path                 import  join
+from    numpy                   import  array, cumsum, diff, zeros
 from    polars                  import  col, Config, Datetime, read_csv
 import  plotly.graph_objects    as      go 
 from    sys                     import  argv
-from    util                    import  adjust_tz
+from    util                    import  adjust_tz, get_sym_data
 
 
-# python get_history.py 20240709_perf ohlcv-1s Europe/Berlin 1
+# python get_history.py 20240709_in ohlcv-1s Europe/Berlin 1
 
 
 class trade_row(IntEnum):
@@ -30,7 +31,6 @@ class trade_row(IntEnum):
 
 TV_DT_FMT   = "%m/%d/%Y %H:%M:%S" 
 DBN_DT_FMT  = "%Y-%m-%dT%H:%M:%S"
-SYM_MAP     = {}
 
 Config.set_tbl_cols(-1)
 Config.set_tbl_rows(-1)
@@ -38,142 +38,81 @@ Config.set_tbl_rows(-1)
 
 if __name__ == "__main__":
 
-    fn      = argv[1]
-    schema  = argv[2]
-    tz      = argv[3]
-    debug   = int(argv[4])
-    trades  = read_csv(join(".", "csvs", f"{fn}.csv"))
-    trades  = trades.with_columns(
-                [
-                    col("boughtTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("boughtTimestamp"),
-                    col("soldTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("soldTimestamp")
-                ]
-            )
-    symbols = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
-    history = []
-
-    for symbol in symbols:
-
-        ohlcv       = read_csv(f"../databento/csvs/{symbol}.c.0_{schema}.csv")
-        ohlcv       = adjust_tz(ohlcv, "ts_event", "ts_event", DBN_DT_FMT, tz)
-        ts          = [ ts_.split(".")[0] for ts_ in list(ohlcv["ts_event"]) ]
-        position    = [ 0 for _ in ts ]
-
-        SYM_MAP[symbol] = {
-            "ts":       ts,
-            "pos":      position,
-            "close":    list(ohlcv["close"]),
-            "start":    None,
-            "end":      None
-        }
-    
-    trades = trades.rows()
+    in_fn       = join(".", "csvs", f"{argv[1]}.csv")
+    out_fn      = join(".", "csvs", f"{argv[1][:-3]}_out.csv")
+    schema      = argv[2]
+    tz          = argv[3]
+    debug       = int(argv[4])
+    trades      = read_csv(in_fn)
+    trades      = trades.with_columns(
+                    [
+                        col("boughtTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("boughtTimestamp"),
+                        col("soldTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("soldTimestamp")
+                    ]
+                )
+    symbols     = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
+    history     = []
+    sym_data    = get_sym_data(symbols, schema, DBN_DT_FMT, tz)
+    trades      = trades.rows()
 
     for trade in trades:
 
         symbol      = trade[trade_row.symbol][:-2]
-        multiplier  = 1 if trade[trade_row.buyFillId] < trade[trade_row.sellFillId] else -1
-        qty         = trade[trade_row.qty] * multiplier
-        i_ts, j_ts  = sorted([ 
-                        trade[trade_row.boughtTimestamp],
-                        trade[trade_row.soldTimestamp]
-                    ])
-        sym_ts      = SYM_MAP[symbol]["ts"]
-        sym_pos     = SYM_MAP[symbol]["pos"]
-
-        i           = bisect_left(sym_ts, i_ts)
-        j           = bisect_left(sym_ts, j_ts)
-
-        # truncate excess data
-
-        if not SYM_MAP[symbol]["start"]:
-
-            SYM_MAP[symbol]["start"] = i - 3600
+        buy_ts      = trade[trade_row.boughtTimestamp]
+        buy_chg     = trade[trade_row.qty]
+        sell_ts     = trade[trade_row.soldTimestamp]
+        sell_chg    = -buy_chg
+        sym_ts      = sym_data[symbol]["ts"]
         
-        if trade == trades[-1]:
-
-            SYM_MAP[symbol]["end"] = j + 3600
-
-        if i not in range(len(sym_pos)) or j not in range(len(sym_pos)):
-
+        if buy_ts < sym_ts[0] or sell_ts > sym_ts[-1]:
+        
             # no data for trade
 
-            break
+            continue
+        
+        buy_idx     = bisect_left(sym_ts, buy_ts)
+        sell_idx    = bisect_left(sym_ts, sell_ts)
 
-        for k in range(i, j + 1):
-
-            sym_pos[k] += qty
-
-        history.append(f"{symbol},{qty},{i},{j}\n")
-
-        #print(i_ts, sym_ts[i])
-        #print(j_ts, sym_ts[j])
+        history.append((symbol, buy_ts, buy_idx, buy_chg))
+        history.append((symbol, sell_ts, sell_idx, sell_chg))
 
     if history:
 
-        with open(f"./{fn}_history.csv", "w") as fd:
+        history = sorted(history, key = lambda r: r[1])
 
-            fd.write("symbol,qty,start,end\n")
+        with open(out_fn, "w") as fd:
+
+            fd.write("symbol,ts,idx,pos_chg\n")
 
             for line in history:
 
-                fd.write(line)
+                fd.write(",".join([ str(i) for i in line ]) + "\n")
 
     if debug:
 
-        for sym, data in SYM_MAP.items():
+        hist = read_csv(out_fn)
 
-            i = data["start"]
-            j = data["end"]
+        #print(hist)
 
-            fig = go.Figure()
+        for symbol in symbols:
 
-            X = data["ts"][i:j]
-            Y = data["close"][i:j]
+            rows        = hist.filter(col("symbol") == symbol).rows()
+            start       = rows[0][-2]
+            stop        = rows[-1][-2]
+            closes      = array(sym_data[symbol]["close"])
+            closes      = diff(closes)
+            position    = zeros(len(closes))
+            
+            for row in rows:
 
-            fig.add_trace(
-                go.Scattergl(
-                    {
-                        "x": X,
-                        "y": Y
-                    }
-                )
-            )
+                position[row[-2] - 1:] += row[-1]
 
-            pos     = data["pos"][i:j]
-            arrow   = {
-                "x":            None,
-                "y":            None,
-                "showarrow":    True,
-                "arrowhead":    3,
-                "arrowwidth":   1.5
-            } 
+            pnl = cumsum(closes * position)
+            act = [ r[trade_row.pnl] for r in trades ]
+            act = [ float(pnl[1:]) if "(" not in pnl else -float(pnl[2:-1]) for pnl in act ]
+            act = cumsum(act)
 
-            for i in range(1, len(pos)):
+            print(f"pnl (pt): {pnl[-1]}")
+            print(f"act  ($): {act[-1]}")
 
-                cur_pos     = pos[i]
-                prev_pos    = pos[i - 1]
-
-                if cur_pos > prev_pos:
-
-                    arrow["text"]       = f"+{cur_pos - prev_pos}"
-                    arrow["font"]       = { "color": "#0000FF" }
-                    arrow["x"]          = X[i]
-                    arrow["y"]          = Y[i]
-                    arrow["arrowcolor"] = "#0000FF"
-
-                    fig.add_annotation(**arrow)
-
-                elif cur_pos < prev_pos:
-
-                    arrow["text"]       = f"{cur_pos - prev_pos}"
-                    arrow["font"]       = { "color": "#FF0000" }
-                    arrow["x"]          = X[i]
-                    arrow["y"]          = Y[i]
-                    arrow["arrowcolor"] = "#FF0000"
-
-                    fig.add_annotation(**arrow)
-
-            fig.show()
-
-    pass
+            pass
