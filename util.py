@@ -1,5 +1,6 @@
-import  polars as       pl
-from    typing import   List
+from    numpy   import  array
+import  polars  as      pl
+from    typing  import  List
 
 
 def adjust_tz(
@@ -40,12 +41,14 @@ def get_sym_data(
 
         ohlcv       = pl.read_csv(f"../databento/csvs/{symbol}.c.0_{schema}.csv")
         ohlcv       = adjust_tz(ohlcv, "ts_event", "ts_event", fmt, tz)
-        ts          = [ t.split(".")[0] for t in list(ohlcv["ts_event"]) ]
+        ts          = [ t.split(".")[0] for t in array(ohlcv["ts_event"]) ]
 
         sym_data[symbol] = {
             "ts":       ts,
-            "open":     list(ohlcv["open"]),
-            "close":    list(ohlcv["close"])
+            "open":     array(ohlcv["open"]),
+            "high":     array(ohlcv["high"]),
+            "low":      array(ohlcv["low"]),
+            "close":    array(ohlcv["close"])
         }
     
     return sym_data

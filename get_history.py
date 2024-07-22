@@ -104,7 +104,8 @@ if __name__ == "__main__":
             rows        = hist.filter(col("symbol") == symbol).rows()
             start       = rows[0][-2]
             stop        = rows[-1][-2]
-            prices      = array(sym_data[symbol]["open"])
+            #prices     = (sym_data[symbol]["open"] + sym_data[symbol]["low"] + sym_data[symbol]["high"] + sym_data[symbol]["close"]) / 4
+            prices      = sym_data[symbol]["open"]
             chgs        = diff(prices)
             position    = zeros(len(chgs))
             
