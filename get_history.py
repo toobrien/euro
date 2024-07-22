@@ -105,14 +105,16 @@ if __name__ == "__main__":
             
             for row in rows:
 
-                position[row[-2] - 1:] += row[-1]
+                position[row[-2] - 1:]+= row[-1]
 
             pnl = cumsum(chgs * position)
             act = [ r[trade_row.pnl] for r in trades ]
             act = [ float(pnl[1:]) if "(" not in pnl else -float(pnl[2:-1]) for pnl in act ]
             act = cumsum(act)
+            qty = cumsum( [ r[trade_row.qty] for r in trades ])
 
-            print(f"{symbol} pnl (pt): {pnl[-1]}")
-            print(f"{symbol} act  ($): {act[-1]}")
+            print(f"{symbol} pnl (pt):  {pnl[-1]}")
+            print(f"{symbol} act  ($):  {act[-1]}")
+            print(f"{symbol} cons (rt): {qty[-1]}")
 
             pass
