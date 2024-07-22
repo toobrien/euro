@@ -44,6 +44,11 @@ if __name__ == "__main__":
     tz          = argv[3]
     debug       = int(argv[4])
     trades      = read_csv(in_fn)
+
+    if debug:
+
+        print(trades.select([ "symbol", "qty", "boughtTimestamp", "buyPrice", "soldTimestamp", "sellPrice", "pnl" ]))
+
     trades      = trades.with_columns(
                     [
                         col("boughtTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("boughtTimestamp"),
@@ -92,7 +97,7 @@ if __name__ == "__main__":
 
         hist = read_csv(out_fn)
 
-        #print(hist)
+        # print(hist)
 
         for symbol in symbols:
 
@@ -103,9 +108,20 @@ if __name__ == "__main__":
             chgs        = diff(closes)
             position    = zeros(len(chgs))
             
+            print(f"{'o_ts':20}{'o_px':10}{'o_pos_chg':10}{'c_ts':20}{'c_px':10}{'c_pos_chg':10}\n")
+
             for row in rows:
 
                 position[row[-2] - 1:]+= row[-1]
+
+            for i in range(0, len(rows), 2):
+
+                o       = rows[i]
+                c       = rows[i + 1]
+                o_txt   = f"{o[1]:20}{closes[o[-2]]:>10}{o[-1]:>10}"
+                c_txt   = f"{c[1]:20}{closes[c[-2]]:>10}{c[-1]:>10}"
+
+                print(f"{o_txt}\t{c_txt}")
 
             pnl = cumsum(chgs * position)
             act = [ r[trade_row.pnl] for r in trades ]
@@ -113,6 +129,7 @@ if __name__ == "__main__":
             act = cumsum(act)
             qty = cumsum( [ r[trade_row.qty] for r in trades ])
 
+            print("\n")
             print(f"{symbol} pnl (pt):  {pnl[-1]}")
             print(f"{symbol} act  ($):  {act[-1]}")
             print(f"{symbol} cons (rt): {qty[-1]}")
