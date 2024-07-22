@@ -100,14 +100,14 @@ if __name__ == "__main__":
             start       = rows[0][-2]
             stop        = rows[-1][-2]
             closes      = array(sym_data[symbol]["close"])
-            closes      = diff(closes)
-            position    = zeros(len(closes))
+            chgs        = diff(closes)
+            position    = zeros(len(chgs))
             
             for row in rows:
 
                 position[row[-2] - 1:] += row[-1]
 
-            pnl = cumsum(closes * position)
+            pnl = cumsum(chgs * position)
             act = [ r[trade_row.pnl] for r in trades ]
             act = [ float(pnl[1:]) if "(" not in pnl else -float(pnl[2:-1]) for pnl in act ]
             act = cumsum(act)
