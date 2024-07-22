@@ -104,8 +104,8 @@ if __name__ == "__main__":
             rows        = hist.filter(col("symbol") == symbol).rows()
             start       = rows[0][-2]
             stop        = rows[-1][-2]
-            closes      = array(sym_data[symbol]["close"])
-            chgs        = diff(closes)
+            prices      = array(sym_data[symbol]["open"])
+            chgs        = diff(prices)
             position    = zeros(len(chgs))
             
             print(f"{'o_ts':20}{'o_px':10}{'o_pos_chg':10}{'c_ts':20}{'c_px':10}{'c_pos_chg':10}\n")
@@ -118,8 +118,8 @@ if __name__ == "__main__":
 
                 o       = rows[i]
                 c       = rows[i + 1]
-                o_txt   = f"{o[1]:20}{closes[o[-2]]:>10}{o[-1]:>10}"
-                c_txt   = f"{c[1]:20}{closes[c[-2]]:>10}{c[-1]:>10}"
+                o_txt   = f"{o[1]:20}{prices[o[-2]]:>10}{o[-1]:>10}"
+                c_txt   = f"{c[1]:20}{prices[c[-2]]:>10}{c[-1]:>10}"
 
                 print(f"{o_txt}\t{c_txt}")
 
