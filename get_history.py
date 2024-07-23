@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
             for row in rows:
 
-                position[row[-2] - 1:]+= row[-1]
+                position[row[-2]:]+= row[-1]
 
             for i in range(0, len(rows), 2):
 
