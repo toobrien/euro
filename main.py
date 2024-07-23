@@ -84,23 +84,24 @@ if __name__ == "__main__":
         returns = []
 
         # detrend
+
         mu_sym      = mean(logs)
         logs        = logs - mu_sym
 
         for _ in range(N):
 
             logs    = choice(logs, size = len(logs), replace = True)
-            pnl_i   = cumsum(position * logs)[-1]
+            mu_i    = mu(position * logs)
             
-            returns.append(pnl_i)
+            returns.append(mu_i)
 
         fig = go.Figure()
 
-        fig.add_trace(go.Histogram(x = returns, name = "r_returns"))
+        fig.add_trace(go.Histogram(x = returns, name = "sampling distribution (mean return)"))
         fig.add_vline(x = retc, line_color = "#FF00FF")
 
         returns = sorted(returns)
-        i       = bisect_left(returns, retc)
+        i       = bisect_left(returns, mu)
         p_val   = 1 - i / len(returns)
 
         fig.show()
@@ -108,7 +109,7 @@ if __name__ == "__main__":
         print(f"{'num samples':20}{N:>10}")
         print(f"{'sampling mean:':20}{mean(returns) * 100:>10.2f}%")
         print(f"{'sampling stdev:':20}{std(returns) * 100:>10.2f}%")
-        print(f"{f'p(r = {retc * 100:>0.2f}%)':20}:{p_val:>10.2f}")
+        print(f"{f'p(r = {mu * 100:>0.2f}%)':20}:{p_val:>10.2f}")
         print("\n")
 
         print(f"{time() - t0:0.1f}s")
