@@ -3,7 +3,7 @@ from    enum                    import  IntEnum
 from    bisect                  import  bisect_left
 from    os.path                 import  join
 from    math                    import  sqrt
-from    numpy                   import  array, cumsum, diff, log, nonzero, zeros
+from    numpy                   import  cumsum, diff, log, mean, nonzero, std, zeros
 from    polars                  import  col, Config, Datetime, read_csv
 import  plotly.graph_objects    as      go 
 from    sys                     import  argv
@@ -39,24 +39,31 @@ if __name__ == "__main__":
         logs        = diff(log(prices))
         position    = zeros(len(chgs))
 
-        print(logs[0])
-
         for row in rows:
 
             position[row[-2]:]+= row[-1]
         
         mask    = nonzero(position)
         pnl     = cumsum(chgs * position)[mask]
-        ret     = (logs * position)[mask]
-        retc    = cumsum(ret)
-
         X       = [ i for i in range(len(pnl)) ]
+        ret     = logs * position
+        retc    = cumsum(ret)
+        mu      = mean(ret)
+        sigma   = std(ret)
+        sharpe  = mu / sigma * sqrt(ppy)
 
-        print(f"{symbol} pnl (pt):   {pnl[-1]}")
-        print(f"{symbol} ret (pct):  {retc[-1]:0.4f}")
+        print("\n")
+        print(f"{symbol} pnl (pt):          {pnl[-1]}")
+        print(f"{symbol} return:            {retc[-1] * 100:>0.2f}%")
+
+        print("\nannualized\n")
+        
+        print(f"{symbol} return:            {mu * ppy * 100:>0.2f}%")
+        print(f"{symbol} stdev:             {sigma * sqrt(ppy) * 100:>0.2f}%")
+        print(f"{symbol} sharpe:            {sharpe:>0.2f}%")
+        print("\n")
 
         fig = go.Figure()
-
 
         fig.add_trace(
             go.Scatter(
@@ -69,5 +76,3 @@ if __name__ == "__main__":
         )
 
         fig.show()
-
-    pass
