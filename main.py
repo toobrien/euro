@@ -91,7 +91,7 @@ if __name__ == "__main__":
         for _ in range(N):
 
             logs    = choice(logs, size = len(logs), replace = True)
-            mu_i    = mu(position * logs)
+            mu_i    = mean(position * logs)
             
             returns.append(mu_i)
 
