@@ -57,7 +57,7 @@ if __name__ == "__main__":
         sigma   = std(ret)
         sharpe  = mu / sigma * sqrt(ppy)
 
-        print("\n")
+        print()
         print(symbol)
         print("-----\n")
 
