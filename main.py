@@ -1,15 +1,13 @@
-from    datetime                import  datetime
-from    enum                    import  IntEnum
 from    bisect                  import  bisect_left
 from    os.path                 import  join
 from    math                    import  sqrt
 from    numpy                   import  cumsum, diff, log, mean, nonzero, std, zeros
 from    numpy.random            import  choice
-from    polars                  import  col, Config, Datetime, read_csv
+from    polars                  import  col, read_csv
 import  plotly.graph_objects    as      go 
 from    sys                     import  argv
 from    time                    import  time
-from    util                    import  adjust_tz, get_sym_data
+from    util                    import  get_sym_data
 
 
 # python get_history.py 20240709_out ohlcv-1s Europe/Berlin
@@ -58,14 +56,14 @@ if __name__ == "__main__":
 
         print(f"\n{symbol}\n")
 
-        print(f"{'pnl (pt):':30}{pnl[-1]:>10.0f}")
-        print(f"{'return:':30}{retc * 100:1>0.2f}%")
+        print(f"{'pnl (pt):':20}{pnl[-1]:>10.0f}")
+        print(f"{'return:':20}{retc * 100:>10.2f}%")
 
         print("\nannualized\n")
         
-        print(f"{'return:':30}{mu * ppy * 100:>10.2f}%")
-        print(f"{'stdev:':30}{sigma * sqrt(ppy) * 100:>0.2f}%")
-        print(f"{'sharpe:':30}{sharpe:>0.2f}")
+        print(f"{'return:':20}{mu * ppy * 100:>10.2f}%")
+        print(f"{'stdev:':20}{sigma * sqrt(ppy) * 100:>10.2f}%")
+        print(f"{'sharpe:':20}{sharpe:>10.2f}")
 
         fig = go.Figure()
 
@@ -103,10 +101,10 @@ if __name__ == "__main__":
 
         fig.show()
 
-        print(f"{'num samples':30}{N:>10}")
-        print(f"{'sampling mean:':30}{mean(returns) * 100:>10.2f}%")
-        print(f"{'sampling stdev:':30}{std(returns) * 100:>10.2f}%")
-        print(f"{f'p(r = {retc * 100:>0.2f}%)':30}:{p_val:>10.2f}")
+        print(f"{'num samples':20}{N:>10}")
+        print(f"{'sampling mean:':20}{mean(returns) * 100:>10.2f}%")
+        print(f"{'sampling stdev:':20}{std(returns) * 100:>10.2f}%")
+        print(f"{f'p(r = {retc * 100:>0.2f}%)':20}:{p_val:>10.2f}")
         print("\n")
 
         print(f"{time() - t0:0.1f}s")
