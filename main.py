@@ -57,7 +57,9 @@ if __name__ == "__main__":
         sigma   = std(ret)
         sharpe  = mu / sigma * sqrt(ppy)
 
-        print(f"\n{symbol}\n")
+        print("\n")
+        print(symbol)
+        print("-----\n")
 
         print(f"{'pnl (pt):':30}{pnl[-1]:>10.0f}")
         print(f"{'return:':30}{retc * 100:>10.2f}%")
@@ -84,12 +86,9 @@ if __name__ == "__main__":
 
         # monte carlo permutation
 
-        sampling_dist = []
-
-        # detrend
-
-        mu_sym      = mean(logs)
-        logs        = logs - mu_sym
+        sampling_dist   = []
+        mu_sym          = mean(logs)
+        logs            = logs - mu_sym     # detrend
 
         for _ in range(N):
 
@@ -112,7 +111,7 @@ if __name__ == "__main__":
         print("\nmonte carlo\n")
 
         print(f"{'num samples':30}{N:>10}")
-        print(f"{'return period:':30}{PERIOD_NAMES['schema']}")
+        print(f"{'return period:':30}{PERIOD_NAMES[schema]}")
         print(f"{'trader mean:':30}{mu * 100:>10.9f}%")
         print(f"{'sampling mean:':30}{mean(sampling_dist) * 100:>10.9f}%")
         print(f"{'sampling stdev:':30}{std(sampling_dist) * 100:>10.9f}%")
