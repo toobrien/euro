@@ -2,9 +2,9 @@ from    bisect                  import  bisect_left
 from    os.path                 import  join
 from    math                    import  sqrt
 from    numpy                   import  cumsum, diff, log, mean, nonzero, std, zeros
-from    numpy.random            import  choice
 from    polars                  import  col, read_csv
 import  plotly.graph_objects    as      go 
+from    random                  import  shuffle
 from    sys                     import  argv
 from    time                    import  time
 from    util                    import  get_sym_data
@@ -92,7 +92,8 @@ if __name__ == "__main__":
 
         for _ in range(N):
 
-            logs    = choice(logs, size = len(logs), replace = True)
+            shuffle(logs)
+            
             mu_i    = mean(position * logs)
             
             sampling_dist.append(mu_i)
