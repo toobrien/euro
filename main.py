@@ -83,6 +83,10 @@ if __name__ == "__main__":
 
         returns = []
 
+        # detrend
+        mu_sym      = mean(logs)
+        logs        = logs - mu_sym
+
         for _ in range(N):
 
             logs    = choice(logs, size = len(logs), replace = True)
@@ -97,7 +101,7 @@ if __name__ == "__main__":
 
         returns = sorted(returns)
         i       = bisect_left(returns, retc)
-        p_val   = i / len(returns)
+        p_val   = 1 - i / len(returns)
 
         fig.show()
 
