@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
         # monte carlo permutation
 
-        returns = []
+        sampling_dist = []
 
         # detrend
 
@@ -93,23 +93,23 @@ if __name__ == "__main__":
             logs    = choice(logs, size = len(logs), replace = True)
             mu_i    = mean(position * logs)
             
-            returns.append(mu_i)
+            sampling_dist.append(mu_i)
 
         fig = go.Figure()
 
-        fig.add_trace(go.Histogram(x = returns, name = "sampling distribution (mean return)"))
-        fig.add_vline(x = retc, line_color = "#FF00FF")
+        fig.add_trace(go.Histogram(x = sampling_dist, name = "sampling distribution (mean return)"))
+        fig.add_vline(x = mu, line_color = "#FF00FF")
 
-        returns = sorted(returns)
-        i       = bisect_left(returns, mu)
-        p_val   = 1 - i / len(returns)
+        returns = sorted(sampling_dist)
+        i       = bisect_left(sampling_dist, mu)
+        p_val   = 1 - i / len(sampling_dist)
 
         fig.show()
 
         print(f"{'num samples':20}{N:>10}")
-        print(f"{'sampling mean:':20}{mean(returns) * 100:>10.2f}%")
-        print(f"{'sampling stdev:':20}{std(returns) * 100:>10.2f}%")
-        print(f"{f'p(r = {mu * 100:>0.2f}%)':20}:{p_val:>10.2f}")
+        print(f"{'sampling mean:':20}{mean(sampling_dist) * 100:>10.2f}%")
+        print(f"{'sampling stdev:':20}{std(sampling_dist) * 100:>10.2f}%")
+        print(f"{f'p(r = {mu * 100:>0.2f}%):':20}{p_val:>10.2f}%")
         print("\n")
 
         print(f"{time() - t0:0.1f}s")
