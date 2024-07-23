@@ -19,7 +19,7 @@ DBN_DT_FMT          = "%Y-%m-%dT%H:%M:%S"
 PERIODS_PER_YEAR    = {
                         "ohlcv-1s": 23 * 60 * 60 * 252
                     }
-N                   = 1000
+N                   = 10_000
 
 
 if __name__ == "__main__":
@@ -58,14 +58,14 @@ if __name__ == "__main__":
 
         print(f"\n{symbol}\n")
 
-        print(f"pnl (pt):          {pnl[-1]}")
-        print(f"return:            {retc * 100:>0.2f}%")
+        print(f"{'pnl (pt):':30}{pnl[-1]:>10.0f}")
+        print(f"{'return:':30}{retc * 100:1>0.2f}%")
 
         print("\nannualized\n")
         
-        print(f"return:            {mu * ppy * 100:>0.2f}%")
-        print(f"stdev:             {sigma * sqrt(ppy) * 100:>0.2f}%")
-        print(f"sharpe:            {sharpe:>0.2f}")
+        print(f"{'return:':30}{mu * ppy * 100:>10.2f}%")
+        print(f"{'stdev:':30}{sigma * sqrt(ppy) * 100:>0.2f}%")
+        print(f"{'sharpe:':30}{sharpe:>0.2f}")
 
         fig = go.Figure()
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         fig = go.Figure()
 
         fig.add_trace(go.Histogram(x = returns, name = "r_returns"))
-        fig.add_vline(x = retc, color = "#FF00FF")
+        fig.add_vline(x = retc, line_color = "#FF00FF")
 
         returns = sorted(returns)
         i       = bisect_left(returns, retc)
@@ -103,9 +103,10 @@ if __name__ == "__main__":
 
         fig.show()
 
-        print(f"random means:     {mean(returns) * 100:>0.2f}%")
-        print(f"random stdevs:    {std(returns) * 100:>0.2f}%")
-        print(f"p(r = {retc * 100:>0.2f}%):       {p_val:>0.2f}")
-
+        print(f"{'num samples':30}{N:>10}")
+        print(f"{'sampling mean:':30}{mean(returns) * 100:>10.2f}%")
+        print(f"{'sampling stdev:':30}{std(returns) * 100:>10.2f}%")
+        print(f"{f'p(r = {retc * 100:>0.2f}%)':30}:{p_val:>10.2f}")
         print("\n")
+
         print(f"{time() - t0:0.1f}s")
