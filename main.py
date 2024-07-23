@@ -52,15 +52,16 @@ if __name__ == "__main__":
         sigma   = std(ret)
         sharpe  = mu / sigma * sqrt(ppy)
 
-        print("\n")
-        print(f"{symbol} pnl (pt):          {pnl[-1]}")
-        print(f"{symbol} return:            {retc[-1] * 100:>0.2f}%")
+        print(f"\n{symbol}\n")
+
+        print(f"pnl (pt):          {pnl[-1]}")
+        print(f"return:            {retc[-1] * 100:>0.2f}%")
 
         print("\nannualized\n")
         
-        print(f"{symbol} return:            {mu * ppy * 100:>0.2f}%")
-        print(f"{symbol} stdev:             {sigma * sqrt(ppy) * 100:>0.2f}%")
-        print(f"{symbol} sharpe:            {sharpe:>0.2f}%")
+        print(f"return:            {mu * ppy * 100:>0.2f}%")
+        print(f"stdev:             {sigma * sqrt(ppy) * 100:>0.2f}%")
+        print(f"sharpe:            {sharpe:>0.2f}%")
         print("\n")
 
         fig = go.Figure()
