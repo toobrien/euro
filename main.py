@@ -2,9 +2,9 @@ from    bisect                  import  bisect_left
 from    os.path                 import  join
 from    math                    import  sqrt
 from    numpy                   import  cumsum, diff, log, mean, nonzero, std, zeros
+from    numpy.random            import  default_rng
 from    polars                  import  col, read_csv
 import  plotly.graph_objects    as      go 
-from    random                  import  shuffle
 from    sys                     import  argv
 from    time                    import  time
 from    util                    import  get_sym_data
@@ -89,12 +89,13 @@ if __name__ == "__main__":
         sampling_dist   = []
         mu_sym          = mean(logs)
         logs            = logs - mu_sym     # detrend
+        rng             = default_rng()
 
         for _ in range(N):
 
-            shuffle(logs)
-            
-            mu_i    = mean(position * logs)
+            rng.shuffle(logs)
+
+            mu_i = mean(position * logs)
             
             sampling_dist.append(mu_i)
 
