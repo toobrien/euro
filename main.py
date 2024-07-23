@@ -47,11 +47,13 @@ if __name__ == "__main__":
         
         mask    = nonzero(position)
         pnl     = cumsum(chgs * position)[mask]
-        ret     = cumsum(logs * position)[mask]
+        ret     = (logs * position)[mask]
+        retc    = cumsum(ret)
+
         X       = [ i for i in range(len(pnl)) ]
 
-        print(f"{symbol} pnl (pt):  {pnl[-1]}")
-        print(f"{symbol} ret (pt):  {ret[-1]:0.4f}")
+        print(f"{symbol} pnl (pt):   {pnl[-1]}")
+        print(f"{symbol} ret (pct):  {retc[-1]:0.4f}")
 
         fig = go.Figure()
 
