@@ -61,7 +61,7 @@ if __name__ == "__main__":
         print(symbol)
         print("-----\n")
 
-        print(f"{'pnl (pt):':30}{pnl[-1]:>10.0f}")
+        print(f"{'pnl (pt):':30}{pnl[-1]:>10.2f}")
         print(f"{'return:':30}{retc * 100:>10.2f}%")
 
         print("\nannualized\n")
