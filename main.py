@@ -61,14 +61,14 @@ if __name__ == "__main__":
         print(symbol)
         print("-----\n")
 
-        print(f"{'pnl (pt):':30}{pnl[-1]:>10.2f}")
-        print(f"{'return:':30}{retc * 100:>10.2f}%")
+        print(f"{'pnl (pt):':30}{pnl[-1]:>20.2f}")
+        print(f"{'return:':30}{retc * 100:>20.2f}%")
 
         print("\nannualized\n")
         
-        print(f"{'return:':30}{mu * ppy * 100:>10.2f}%")
-        print(f"{'stdev:':30}{sigma * sqrt(ppy) * 100:>10.2f}%")
-        print(f"{'sharpe:':30}{sharpe:>10.2f}")
+        print(f"{'return:':30}{mu * ppy * 100:>20.2f}%")
+        print(f"{'stdev:':30}{sigma * sqrt(ppy) * 100:>20.2f}%")
+        print(f"{'sharpe:':30}{sharpe:>20.2f}")
 
         fig = go.Figure()
 
@@ -113,11 +113,11 @@ if __name__ == "__main__":
         print("\nmonte carlo\n")
 
         print(f"{'num samples':30}{N:>10}")
-        print(f"{'return period:':30}{PERIOD_NAMES[schema]:>10}")
+        print(f"{'return period:':30}{PERIOD_NAMES[schema]:>20}")
         print(f"{'trader mean:':30}{mu * 100:>10.9f}%")
-        print(f"{'sampling mean:':30}{mean(sampling_dist) * 100:>10.9f}%")
-        print(f"{'sampling stdev:':30}{std(sampling_dist) * 100:>10.9f}%")
-        print(f"{f'p(r >= {mu * 100:>0.9f}%):':30}{p_val:>10.2f}")
+        print(f"{'sampling mean:':30}{mean(sampling_dist) * 100:>20.9f}%")
+        print(f"{'sampling stdev:':30}{std(sampling_dist) * 100:>20.9f}%")
+        print(f"{f'p(r >= {mu * 100:>0.9f}%):':30}{p_val:>20.2f}")
         print("\n")
 
         print(f"{time() - t0:0.1f}s")
