@@ -66,6 +66,7 @@ if __name__ == "__main__":
         m_sell_px   = trade[trade_row.sellPrice]
         sym_ts      = sym_data[symbol]["ts"]
         sym_px      = sym_data[symbol]["open"]
+        #sym_px      = (sym_data[symbol]["open"] + sym_data[symbol]["high"] + sym_data[symbol]["low"] + sym_data[symbol]["close"]) / 4
         
         if m_buy_ts < sym_ts[0] or m_sell_ts > sym_ts[-1]:
         
