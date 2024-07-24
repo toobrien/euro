@@ -59,9 +59,9 @@ if __name__ == "__main__":
 
         symbol      = trade[trade_row.symbol][:-2]
         m_buy_ts    = trade[trade_row.boughtTimestamp]
-        buy_chg     = trade[trade_row.qty]
         m_sell_ts   = trade[trade_row.soldTimestamp]
-        sell_chg    = -buy_chg
+        m_buy_chg   = trade[trade_row.qty]
+        m_sell_chg  = -m_buy_chg
         m_buy_px    = trade[trade_row.buyPrice]
         m_sell_px   = trade[trade_row.sellPrice]
         sym_ts      = sym_data[symbol]["ts"]
@@ -80,10 +80,10 @@ if __name__ == "__main__":
         h_buy_px    = sym_px[h_buy_idx]
         h_sell_px   = sym_px[h_sell_idx]
 
-        history.append((symbol, h_buy_ts, h_buy_idx, buy_chg, h_buy_px))
-        history.append((symbol, h_sell_ts, h_sell_idx, sell_chg, h_sell_px))
-        master.append((symbol, m_buy_ts, None, buy_chg, m_buy_px))
-        master.append((symbol, m_sell_ts, None, sell_chg, m_sell_px))
+        history.append((symbol, h_buy_ts, h_buy_idx, m_buy_chg, h_buy_px))
+        history.append((symbol, h_sell_ts, h_sell_idx, m_sell_chg, h_sell_px))
+        master.append((symbol, m_buy_ts, None, m_buy_chg, m_buy_px))
+        master.append((symbol, m_sell_ts, None, m_sell_chg, m_sell_px))
 
     if history:
 
