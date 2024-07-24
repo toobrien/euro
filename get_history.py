@@ -1,5 +1,6 @@
 from    enum                    import  IntEnum
 from    bisect                  import  bisect_left
+from    numpy                   import  cumsum
 from    os.path                 import  join
 from    polars                  import  DataFrame, col, Config, Datetime, read_csv
 import  plotly.graph_objects    as      go 
@@ -109,12 +110,12 @@ if __name__ == "__main__":
             df_seq  = DataFrame(
                 {
                     "symbol":   [ row[0] for row in h_rows ],
-                    "out_ts":   [ row[1] for row in h_rows ],
-                    "out_qty":  [ row[3] for row in h_rows ],
-                    "out_px":   [ row[4] for row in h_rows ],
                     "in_ts":    [ row[1] for row in m_rows ],
                     "in_qty":   [ row[3] for row in m_rows ],
                     "in_px":    [ row[4] for row in m_rows ],
+                    "out_ts":   [ row[1] for row in h_rows ],
+                    "out_qty":  [ row[3] for row in h_rows ],
+                    "out_px":   [ row[4] for row in h_rows ]
                 }
             )
             
@@ -131,18 +132,30 @@ if __name__ == "__main__":
             df_pnl = DataFrame(
                 {
                     "trade":        [ i for i in range(int(len(h_rows) / 2)) ],
-                    "out_open_px":  out_open_px,
-                    "out_close_px": out_close_px,
-                    "out_qty":      out_qty,
-                    "out_pnl":      out_pnl,
                     "in_open_px":   in_open_px,
                     "in_close_px":  in_close_px,
                     "in_qty":       in_qty,
                     "in_pnl":       in_pnl,
+                    "out_open_px":  out_open_px,
+                    "out_close_px": out_close_px,
+                    "out_qty":      out_qty,
+                    "out_pnl":      out_pnl,
                     "diff_pnl":     diff_pnl
 
                 }
             )
+            
+            df_pnl = df_pnl.with_columns((col("diff_pnl").cum_sum()).alias("diff_pnl_cum"))
 
             print(df_seq)
             print(df_pnl)
+
+            total_in_pnl    = sum(in_pnl)
+            total_out_pnl   = sum(out_pnl)
+            diff            = total_in_pnl - total_out_pnl
+
+            print(f"input pnl:  {total_in_pnl}")
+            print(f"output pnl: {total_out_pnl}")
+            print(f"diff:       {diff}")
+
+            
