@@ -157,4 +157,4 @@ if __name__ == "__main__":
 
             print(f"input pnl:  {total_in_pnl}")
             print(f"output pnl: {total_out_pnl}")
-            print(f"diff:       {diff}")
+            print(f"diff:       {diff} ({(total_out_pnl / total_in_pnl - 1) * 100:>0.2f}%)")
