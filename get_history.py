@@ -1,9 +1,7 @@
-from    datetime                import  datetime
 from    enum                    import  IntEnum
 from    bisect                  import  bisect_left
 from    os.path                 import  join
-from    numpy                   import  array, cumsum, diff, zeros
-from    polars                  import  col, Config, Datetime, read_csv
+from    polars                  import  DataFrame, col, Config, Datetime, read_csv
 import  plotly.graph_objects    as      go 
 from    sys                     import  argv
 from    util                    import  adjust_tz, get_sym_data
@@ -44,11 +42,6 @@ if __name__ == "__main__":
     tz          = argv[3]
     debug       = int(argv[4])
     trades      = read_csv(in_fn)
-
-    if debug:
-
-        print(trades.select([ "symbol", "qty", "boughtTimestamp", "buyPrice", "soldTimestamp", "sellPrice", "pnl" ]))
-
     trades      = trades.with_columns(
                     [
                         col("boughtTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("boughtTimestamp"),
@@ -57,82 +50,99 @@ if __name__ == "__main__":
                 )
     symbols     = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
     history     = []
+    master      = []
     sym_data    = get_sym_data(symbols, schema, DBN_DT_FMT, tz)
-    trades      = trades.rows()
+    in_rows     = trades.rows()
 
-    for trade in trades:
+    for trade in in_rows:
 
         symbol      = trade[trade_row.symbol][:-2]
-        buy_ts      = trade[trade_row.boughtTimestamp]
+        m_buy_ts    = trade[trade_row.boughtTimestamp]
         buy_chg     = trade[trade_row.qty]
-        sell_ts     = trade[trade_row.soldTimestamp]
+        m_sell_ts   = trade[trade_row.soldTimestamp]
         sell_chg    = -buy_chg
+        m_buy_px    = trade[trade_row.buyPrice]
+        m_sell_px   = trade[trade_row.sellPrice]
         sym_ts      = sym_data[symbol]["ts"]
+        sym_px      = sym_data[symbol]["open"]
         
-        if buy_ts < sym_ts[0] or sell_ts > sym_ts[-1]:
+        if m_buy_ts < sym_ts[0] or m_sell_ts > sym_ts[-1]:
         
             # no data for trade
 
             continue
         
-        buy_idx     = bisect_left(sym_ts, buy_ts)
-        sell_idx    = bisect_left(sym_ts, sell_ts)
+        h_buy_idx   = bisect_left(sym_ts, m_buy_ts)
+        h_sell_idx  = bisect_left(sym_ts, m_sell_ts)
+        h_buy_ts    = sym_ts[h_buy_idx]
+        h_sell_ts   = sym_ts[h_sell_idx]
+        h_buy_px    = sym_px[h_buy_idx]
+        h_sell_px   = sym_px[h_sell_idx]
 
-        history.append((symbol, buy_ts, buy_idx, buy_chg))
-        history.append((symbol, sell_ts, sell_idx, sell_chg))
+        history.append((symbol, h_buy_ts, h_buy_idx, buy_chg, h_buy_px))
+        history.append((symbol, h_sell_ts, h_sell_idx, sell_chg, h_sell_px))
+        master.append((symbol, m_buy_ts, None, buy_chg, m_buy_px))
+        master.append((symbol, m_sell_ts, None, sell_chg, m_sell_px))
 
     if history:
 
+        master  = sorted(master, key = lambda r: r[1])
         history = sorted(history, key = lambda r: r[1])
 
         with open(out_fn, "w") as fd:
 
-            fd.write("symbol,ts,idx,pos_chg\n")
+            fd.write("symbol,ts,idx,pos_chg")
 
             for line in history:
 
-                fd.write(",".join([ str(i) for i in line ]) + "\n")
+                fd.write(",".join([ str(i) for i in line[:-1] ]) + "\n")
 
     if debug:
-
-        hist = read_csv(out_fn)
 
         # print(hist)
 
         for symbol in symbols:
 
-            rows        = hist.filter(col("symbol") == symbol).rows()
-            start       = rows[0][-2]
-            stop        = rows[-1][-2]
-            #prices     = (sym_data[symbol]["open"] + sym_data[symbol]["low"] + sym_data[symbol]["high"] + sym_data[symbol]["close"]) / 4
-            prices      = sym_data[symbol]["open"]
-            chgs        = diff(prices)
-            position    = zeros(len(chgs))
+            h_rows  = [ row for row in history if row[0] == symbol ]
+            m_rows  = [ row for row in master if row[0] == symbol ]
+
+            df_seq  = DataFrame(
+                {
+                    "symbol":   [ row[0] for row in h_rows ],
+                    "out_ts":   [ row[1] for row in h_rows ],
+                    "out_qty":  [ row[3] for row in h_rows ],
+                    "out_px":   [ row[4] for row in h_rows ],
+                    "in_ts":    [ row[1] for row in m_rows ],
+                    "in_qty":   [ row[3] for row in m_rows ],
+                    "in_px":    [ row[4] for row in m_rows ],
+                }
+            )
             
-            print(f"{'o_ts':20}{'o_px':10}{'o_pos_chg':10}{'c_ts':20}{'c_px':10}{'c_pos_chg':10}\n")
+            out_open_px     = [ h_rows[i][4] for i in range(0, len(h_rows), 2) ]
+            out_close_px    = [ h_rows[i][4] for i in range(1, len(h_rows), 2) ]
+            out_qty         = [ h_rows[i][3] for i in range(0, len(h_rows), 2) ]
+            out_pnl         = [ (out_close_px[i] - out_open_px[i]) * out_qty[i] for i in range(len(out_open_px)) ]
+            in_open_px      = [ m_rows[i][4] for i in range(0, len(m_rows), 2) ]
+            in_close_px     = [ m_rows[i][4] for i in range(1, len(m_rows), 2) ]
+            in_qty          = [ m_rows[i][3] for i in range(0, len(m_rows), 2) ]
+            in_pnl          = [ (in_close_px[i] - in_open_px[i]) * in_qty[i] for i in range(len(in_open_px)) ]
+            diff_pnl        = [ in_pnl[i] - out_pnl[i] for i in range(len(in_pnl)) ]
 
-            for row in rows:
+            df_pnl = DataFrame(
+                {
+                    "trade":        [ i for i in range(int(len(h_rows) / 2)) ],
+                    "out_open_px":  out_open_px,
+                    "out_close_px": out_close_px,
+                    "out_qty":      out_qty,
+                    "out_pnl":      out_pnl,
+                    "in_open_px":   in_open_px,
+                    "in_close_px":  in_close_px,
+                    "in_qty":       in_qty,
+                    "in_pnl":       in_pnl,
+                    "diff_pnl":     diff_pnl
 
-                position[row[-2]:]+= row[-1]
+                }
+            )
 
-            for i in range(0, len(rows), 2):
-
-                o       = rows[i]
-                c       = rows[i + 1]
-                o_txt   = f"{o[1]:20}{prices[o[-2]]:>10}{o[-1]:>10}"
-                c_txt   = f"{c[1]:20}{prices[c[-2]]:>10}{c[-1]:>10}"
-
-                print(f"{o_txt}\t{c_txt}")
-
-            pnl = cumsum(chgs * position)
-            act = [ r[trade_row.pnl] for r in trades ]
-            act = [ float(pnl[1:]) if "(" not in pnl else -float(pnl[2:-1]) for pnl in act ]
-            act = cumsum(act)
-            qty = cumsum( [ r[trade_row.qty] for r in trades ])
-
-            print("\n")
-            print(f"{symbol} pnl (pt):  {pnl[-1]}")
-            print(f"{symbol} act  ($):  {act[-1]}")
-            print(f"{symbol} cons (rt): {qty[-1]}")
-
-            pass
+            print(df_seq)
+            print(df_pnl)
