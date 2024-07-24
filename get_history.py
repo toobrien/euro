@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
         with open(out_fn, "w") as fd:
 
-            fd.write("symbol,ts,idx,pos_chg")
+            fd.write("symbol,ts,idx,pos_chg\n")
 
             for line in history:
 
@@ -157,5 +157,3 @@ if __name__ == "__main__":
             print(f"input pnl:  {total_in_pnl}")
             print(f"output pnl: {total_out_pnl}")
             print(f"diff:       {diff}")
-
-            
