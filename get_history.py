@@ -127,7 +127,7 @@ if __name__ == "__main__":
             in_close_px     = [ m_rows[i][4] for i in range(1, len(m_rows), 2) ]
             in_qty          = [ m_rows[i][3] for i in range(0, len(m_rows), 2) ]
             in_pnl          = [ (in_close_px[i] - in_open_px[i]) * in_qty[i] for i in range(len(in_open_px)) ]
-            diff_pnl        = [ in_pnl[i] - out_pnl[i] for i in range(len(in_pnl)) ]
+            diff_pnl        = [ out_pnl[i] - in_pnl[i] for i in range(len(in_pnl)) ]
 
             df_pnl = DataFrame(
                 {
@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
             total_in_pnl    = sum(in_pnl)
             total_out_pnl   = sum(out_pnl)
-            diff            = total_in_pnl - total_out_pnl
+            diff            = total_out_pnl - total_in_pnl
 
             print(f"input pnl:  {total_in_pnl}")
             print(f"output pnl: {total_out_pnl}")
