@@ -2,34 +2,19 @@ from    enum                    import  IntEnum
 from    bisect                  import  bisect_left
 from    numpy                   import  array, cumsum
 from    os.path                 import  join
+from    parsers                 import  tradovate
 from    polars                  import  DataFrame, col, Config, Datetime, read_csv
 import  plotly.graph_objects    as      go 
 from    sys                     import  argv
 from    util                    import  adjust_tz, get_sym_data
 
 
-# python get_history.py 20240709_in ohlcv-1s Europe/Berlin 1
+# python get_history.py 20240709_in tradovate ohlcv-1s Europe/Berlin 1
 
 
-class trade_row(IntEnum):
-
-    symbol              = 0
-    _priceFormat        = 1
-    _priceFormatType    = 2
-    _tickSize           = 3
-    buyFillId           = 4
-    sellFillId          = 5
-    qty                 = 6
-    buyPrice            = 7
-    sellPrice           = 8
-    pnl                 = 9
-    boughtTimestamp     = 10
-    soldTimestamp       = 11
-    duration            = 12
-
-
-TV_DT_FMT   = "%m/%d/%Y %H:%M:%S" 
+PARSERS     = { "tradovate": tradovate }
 DBN_DT_FMT  = "%Y-%m-%dT%H:%M:%S"
+
 
 Config.set_tbl_cols(-1)
 Config.set_tbl_rows(-1)
@@ -39,52 +24,13 @@ if __name__ == "__main__":
 
     in_fn       = join(".", "csvs", f"{argv[1]}.csv")
     out_fn      = join(".", "csvs", f"{argv[1][:-3]}_out.csv")
-    schema      = argv[2]
-    tz          = argv[3]
-    debug       = int(argv[4])
-    trades      = read_csv(in_fn)
-    trades      = trades.with_columns(
-                    [
-                        col("boughtTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("boughtTimestamp"),
-                        col("soldTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(DBN_DT_FMT).alias("soldTimestamp")
-                    ]
-                )
-    symbols     = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
-    input       = []
-    output      = []
-    sym_data    = get_sym_data(symbols, schema, DBN_DT_FMT, tz)
-    in_rows     = trades.rows()
+    parser      = PARSERS[argv[2]]
+    schema      = argv[3]
+    tz          = argv[4]
+    debug       = int(argv[5])
 
-    for trade in in_rows:
+    symbols, input, output = parser.parse(in_fn, schema, tz, DBN_DT_FMT)
 
-        symbol      = trade[trade_row.symbol][:-2]
-        in_buy_ts   = trade[trade_row.boughtTimestamp]
-        in_sell_ts  = trade[trade_row.soldTimestamp]
-        in_qty      = trade[trade_row.qty]
-        in_buy_px   = trade[trade_row.buyPrice]
-        in_sell_px  = trade[trade_row.sellPrice]
-        sym_ts      = sym_data[symbol]["ts"]
-        sym_px      = sym_data[symbol]["open"]
-        #sym_px      = (sym_data[symbol]["open"] + sym_data[symbol]["high"] + sym_data[symbol]["low"] + sym_data[symbol]["close"]) / 4
-        
-        if in_buy_ts < sym_ts[0] or in_sell_ts > sym_ts[-1]:
-        
-            # no data for trade
-
-            continue
-        
-        out_buy_idx     = bisect_left(sym_ts, in_buy_ts)
-        out_sell_idx    = bisect_left(sym_ts, in_sell_ts)
-        out_buy_ts      = sym_ts[out_buy_idx]
-        out_sell_ts     = sym_ts[out_sell_idx]
-        out_buy_px      = sym_px[out_buy_idx]
-        out_sell_px     = sym_px[out_sell_idx]
-
-        input.append((symbol, in_buy_ts, None, in_qty, in_buy_px))
-        input.append((symbol, in_sell_ts, None, -in_qty, in_sell_px))
-        output.append((symbol, out_buy_ts, out_buy_idx, in_qty, out_buy_px))
-        output.append((symbol, out_sell_ts, out_sell_idx, -in_qty, out_sell_px))
-    
     if output:
 
         output  = sorted(output, key = lambda r: r[1])
@@ -99,8 +45,6 @@ if __name__ == "__main__":
                 fd.write(",".join([ str(i) for i in line[:-1] ]) + "\n")
 
     if debug:
-
-        # print(hist)
 
         for symbol in symbols:
 
