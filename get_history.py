@@ -104,15 +104,12 @@ if __name__ == "__main__":
 
         for symbol in symbols:
 
-            in_rows     = [ row for row in input if row[0] == symbol ]
-            out_rows    = [ row for row in output if row[0] == symbol ]
-
-            # 3: position
-            # 4: price
-
+            in_rows         = [ row for row in input if row[0] == symbol ]
             in_position     = in_rows[0][3]
             in_pnl          = 0.
             in_pnls         = [ in_pnl ]
+            
+            out_rows        = [ row for row in output if row[0] == symbol ]
             out_position    = out_rows[0][3]
             out_pnl         = 0.
             out_pnls        = [ out_pnl ]
@@ -127,65 +124,29 @@ if __name__ == "__main__":
                 in_pnls.append(in_pnl)
                 out_pnls.append(out_pnl)
 
-            in_pnls     = array(in_pnls)
-            out_pnls    = array(out_pnls)
-            diff        = out_pnls - in_pnls
-            diff_pct    = (out_pnls / in_pnls - 1) * 100
+            in_pnls         = array(in_pnls)
+            out_pnls        = array(out_pnls)
+            in_px           = array([ row[4] for row in in_rows ])
+            out_px          = array([ row[4] for row in out_rows ])
+            diff_px         = out_px - in_px
+            diff_pnl        = out_pnls - in_pnls
+            diff_pnl_pct    = (out_pnls / in_pnls - 1) * 100
 
-            df_seq  = DataFrame(
+            df = DataFrame(
                 {
-                    "symbol":   [ row[0] for row in out_rows ],
-                    "in_ts":    [ row[1] for row in in_rows ],
-                    "in_qty":   [ row[3] for row in in_rows ],
-                    "in_px":    [ row[4] for row in in_rows ],
-                    "in_pnl":   in_pnls,
-                    "out_ts":   [ row[1] for row in out_rows ],
-                    "out_qty":  [ row[3] for row in out_rows ],
-                    "out_px":   [ row[4] for row in out_rows ],
-                    "out_pnl":  out_pnls,
-                    "diff":     diff,
-                    "diff (%)": diff_pct
+                    "symbol":       [ row[0] for row in out_rows ],
+                    "in_ts":        [ row[1] for row in in_rows ],
+                    "out_ts":       [ row[1] for row in out_rows ],
+                    "in_qty":       [ row[3] for row in in_rows ],
+                    "out_qty":      [ row[3] for row in out_rows ],
+                    "in_px":        in_px,
+                    "out_px":       out_px,
+                    "diff_px":      diff_px,
+                    "in_pnl":       in_pnls,
+                    "out_pnl":      out_pnls,
+                    "diff_pnl":     diff_pnl,
+                    "diff_pnl (%)": diff_pnl_pct
                 }
             )
 
-            print(df_seq)
-            
-            '''
-            out_open_px     = [ out_rows[i][4] for i in range(0, len(out_rows), 2) ]
-            out_close_px    = [ out_rows[i][4] for i in range(1, len(out_rows), 2) ]
-            out_qty         = [ out_rows[i][3] for i in range(0, len(out_rows), 2) ]
-            out_pnl         = [ (out_close_px[i] - out_open_px[i]) * out_qty[i] for i in range(len(out_open_px)) ]
-            in_open_px      = [ in_rows[i][4] for i in range(0, len(in_rows), 2) ]
-            in_close_px     = [ in_rows[i][4] for i in range(1, len(out_rows), 2) ]
-            in_qty          = [ in_rows[i][3] for i in range(0, len(out_rows), 2) ]
-            in_pnl          = [ (in_close_px[i] - in_open_px[i]) * in_qty[i] for i in range(len(in_open_px)) ]
-            diff_pnl        = [ out_pnl[i] - in_pnl[i] for i in range(len(in_pnl)) ]
-
-            df_pnl = DataFrame(
-                {
-                    "trade":        [ i for i in range(int(len(out_rows) / 2)) ],
-                    "in_open_px":   in_open_px,
-                    "in_close_px":  in_close_px,
-                    "in_qty":       in_qty,
-                    "in_pnl":       in_pnl,
-                    "out_open_px":  out_open_px,
-                    "out_close_px": out_close_px,
-                    "out_qty":      out_qty,
-                    "out_pnl":      out_pnl,
-                    "diff_pnl":     diff_pnl
-
-                }
-            )
-            
-            df_pnl = df_pnl.with_columns((col("diff_pnl").cum_sum()).alias("diff_pnl_cum"))
-
-            print(df_pnl)
-
-            total_in_pnl    = sum(in_pnl)
-            total_out_pnl   = sum(out_pnl)
-            diff            = total_out_pnl - total_in_pnl
-
-            print(f"input pnl:  {total_in_pnl}")
-            print(f"output pnl: {total_out_pnl}")
-            print(f"diff:       {diff} ({(total_out_pnl / total_in_pnl - 1) * 100:>0.2f}%)")
-            '''
+            print(df)
