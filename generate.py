@@ -9,7 +9,7 @@ from    sys                     import  argv
 from    util                    import  adjust_tz, get_sym_data
 
 
-# python get_history.py 20240709_in tradovate ohlcv-1s Europe/Berlin 1
+# python generate.py 20240709_in tradovate ohlcv-1s Europe/Berlin 1
 
 
 PARSERS     = { "tradovate": tradovate }
