@@ -77,20 +77,20 @@ if __name__ == "__main__":
             diff_pnl_pct    = (out_pnls / in_pnls - 1) * 100
 
             df = DataFrame(
-                {
-                    "symbol":       [ row[0] for row in out_rows ],
-                    "in_ts":        [ row[1] for row in in_rows ],
-                    "out_ts":       [ row[1] for row in out_rows ],
-                    "in_qty":       [ row[3] for row in in_rows ],
-                    "out_qty":      [ row[3] for row in out_rows ],
-                    "in_px":        in_px,
-                    "out_px":       out_px,
-                    "diff_px":      diff_px,
-                    "in_pnl":       in_pnls,
-                    "out_pnl":      out_pnls,
-                    "diff_pnl":     diff_pnl,
-                    "diff_pnl (%)": diff_pnl_pct
-                }
-            )
+                    {
+                        "symbol":       [ row[0] for row in out_rows ],
+                        "in_ts":        [ row[1] for row in in_rows ],
+                        "out_ts":       [ row[1] for row in out_rows ],
+                        "in_qty":       [ row[3] for row in in_rows ],
+                        "out_qty":      [ row[3] for row in out_rows ],
+                        "in_px":        in_px,
+                        "out_px":       out_px,
+                        "diff_px":      diff_px,
+                        "in_pnl":       in_pnls,
+                        "out_pnl":      out_pnls,
+                        "diff_pnl":     diff_pnl,
+                        "diff_pnl (%)": diff_pnl_pct
+                    }
+                )
 
             print(df)
