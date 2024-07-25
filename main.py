@@ -113,9 +113,9 @@ if __name__ == "__main__":
 
         print("\nmonte carlo\n")
 
-        print(f"{'num samples':30}{N:>10}")
+        print(f"{'num samples':30}{N:>20}")
         print(f"{'return period:':30}{PERIOD_NAMES[schema]:>20}")
-        print(f"{'trader mean:':30}{mu * 100:>10.9f}%")
+        print(f"{'trader mean:':30}{mu * 100:>20.9f}%")
         print(f"{'sampling mean:':30}{mean(sampling_dist) * 100:>20.9f}%")
         print(f"{'sampling stdev:':30}{std(sampling_dist) * 100:>20.9f}%")
         print(f"{f'p(r >= {mu * 100:>0.9f}%):':30}{p_val:>20.2f}")
