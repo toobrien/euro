@@ -1,14 +1,12 @@
 from    enum                    import  IntEnum
 from    bisect                  import  bisect_left
-from    numpy                   import  array, cumsum
-from    os.path                 import  join
-from    polars                  import  DataFrame, col, Config, Datetime, read_csv
-import  plotly.graph_objects    as      go 
-from    sys                     import  argv, path
+from    polars                  import  col, Datetime, read_csv
+from    sys                     import  path
 
 path.append(".")
 
 from    util                    import  adjust_tz, get_sym_data
+
 
 class trade_row(IntEnum):
 
