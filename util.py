@@ -1,3 +1,4 @@
+from    config  import  FUT_DEFS
 from    numpy   import  array
 import  polars  as      pl
 from    typing  import  List
@@ -38,6 +39,10 @@ def get_sym_data(
     sym_data = {}
 
     for symbol in symbols:
+
+        if symbol not in FUT_DEFS or not FUT_DEFS[symbol]["enabled"]:
+
+            continue
 
         ohlcv       = pl.read_csv(f"../databento/csvs/{symbol}.c.0_{schema}.csv")
         ohlcv       = adjust_tz(ohlcv, "ts_event", "ts_event", fmt, tz)

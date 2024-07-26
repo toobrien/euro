@@ -35,9 +35,16 @@ if __name__ == "__main__":
 
         for row in input:
 
-            symbol  = row[0] 
-            qty     = row[2]
+            symbol = row[0]
+
+            if symbol not in sym_data:
+
+                mask.append(0)
+
+                continue
+
             ts      = sym_data[symbol]["ts"]
+            qty     = row[2]
             px      = sym_data[symbol]["close"]
             in_ts   = row[1]
 
@@ -46,9 +53,9 @@ if __name__ == "__main__":
                 mask.append(0)
 
                 continue
-
+            
             mask.append(1)
-
+            
             out_idx = bisect_left(ts, in_ts)
             out_ts  = ts[out_idx]
             out_px  = px[out_idx]
