@@ -11,7 +11,7 @@ from    time                    import  time
 from    util                    import  get_sym_data
 
 
-# python main.py 20240709_out ohlcv-1s Europe/Berlin
+# python mc.py 20240709_out ohlcv-1s Europe/Berlin
 
 
 DBN_DT_FMT          = "%Y-%m-%dT%H:%M:%S"
