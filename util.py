@@ -41,12 +41,12 @@ def get_sc_df(
                     join(SC_PATH, f"{symbol}.scid_BarData.txt"),
                     new_columns         = [ "date", "time", "open", "high", "low", "close" ],
                     schema_overrides    = {
-                                            "Date": str,
-                                            " Time": str,
-                                            " Open": pl.Float32,
-                                            " High": pl.Float32,
-                                            " Low":  pl.Float32,
-                                            " Last": pl.Float32,
+                                            "Date":     str,
+                                            " Time":    str,
+                                            " Open":    pl.Float32,
+                                            " High":    pl.Float32,
+                                            " Low":     pl.Float32,
+                                            " Last":    pl.Float32,
                                         }
                 ).with_columns(
                     (
