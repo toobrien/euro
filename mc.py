@@ -1,5 +1,6 @@
 
 from    bisect                  import  bisect_left
+from    datetime                import  datetime, timedelta
 from    os.path                 import  join
 from    math                    import  sqrt
 from    numpy                   import  cumsum, diff, log, mean, nonzero, std, zeros
@@ -11,16 +12,10 @@ from    time                    import  time
 from    util                    import  get_sym_data
 
 
-# python mc.py 20240709_out ohlcv-1s Europe/Berlin
+# python mc.py euro_out sc Europe/Berlin
 
 
-DBN_DT_FMT          = "%Y-%m-%dT%H:%M:%S"
-PERIODS_PER_YEAR    = {
-                        "ohlcv-1s": 23 * 60 * 60 * 252
-                    }
-PERIOD_NAMES        = {
-                        "ohlcv-1s": "1 second"
-                    }
+PERIODS_PER_YEAR    = 23 * 60 * 60 * 252
 N                   = 10_000
 
 
@@ -30,10 +25,11 @@ if __name__ == "__main__":
     fn          = join(".", "csvs", f"{argv[1]}.csv")
     hist        = read_csv(fn)
     symbols     = list(hist["symbol"].unique())
-    schema      = argv[2]
+    src         = argv[2]
     tz          = argv[3]
-    ppy         = PERIODS_PER_YEAR[schema]
-    sym_data    = get_sym_data(symbols, schema, DBN_DT_FMT, tz)
+    start       = hist["ts"][0].split("T")[0]
+    end         = (datetime.strptime(hist["ts"][-1].split("T")[0], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+    sym_data    = get_sym_data(symbols, start, end, tz, src)
 
     for symbol in symbols:
 
@@ -56,7 +52,7 @@ if __name__ == "__main__":
         retc    = cumsum(ret)[-1]
         mu      = mean(ret)
         sigma   = std(ret)
-        sharpe  = mu / sigma * sqrt(ppy)
+        sharpe  = mu / sigma * sqrt(PERIODS_PER_YEAR)
 
         print()
         print(symbol)
@@ -67,8 +63,8 @@ if __name__ == "__main__":
 
         print("\nannualized\n")
         
-        print(f"{'return:':30}{mu * ppy * 100:>20.2f}%")
-        print(f"{'stdev:':30}{sigma * sqrt(ppy) * 100:>20.2f}%")
+        print(f"{'return:':30}{mu * PERIODS_PER_YEAR * 100:>20.2f}%")
+        print(f"{'stdev:':30}{sigma * sqrt(PERIODS_PER_YEAR) * 100:>20.2f}%")
         print(f"{'sharpe:':30}{sharpe:>20.2f}")
 
         fig = go.Figure()
@@ -114,7 +110,7 @@ if __name__ == "__main__":
         print("\nmonte carlo\n")
 
         print(f"{'num samples':30}{N:>20}")
-        print(f"{'return period:':30}{PERIOD_NAMES[schema]:>20}")
+        print(f"{'return period:':30}{'1 second':>20}")
         print(f"{'trader mean:':30}{mu * 100:>20.9f}%")
         print(f"{'sampling mean:':30}{mean(sampling_dist) * 100:>20.9f}%")
         print(f"{'sampling stdev:':30}{std(sampling_dist) * 100:>20.9f}%")

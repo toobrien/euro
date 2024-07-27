@@ -6,11 +6,10 @@ from    polars                  import  DataFrame, Config
 from    sys                     import  argv
 
 
-# python generate.py 20240709_in tradovate ohlcv-1s Europe/Berlin 1
+# python gen.py euro_in sc Europe/Berlin tradovate 1
 
 
-PARSERS     = { "tradovate": tradovate }
-DBN_DT_FMT  = "%Y-%m-%dT%H:%M:%S"
+PARSERS = { "tradovate": tradovate }
 
 
 Config.set_tbl_cols(-1)
@@ -21,11 +20,11 @@ if __name__ == "__main__":
 
     in_fn           = join(".", "csvs", f"{argv[1]}.csv")
     out_fn          = join(".", "csvs", f"{argv[1][:-3]}_out.csv")
-    parser          = PARSERS[argv[2]]
-    schema          = argv[3]
-    tz              = argv[4]
+    src             = argv[2]
+    tz              = argv[3]
+    parser          = PARSERS[argv[4]]
     debug           = int(argv[5])
-    sym_data, input = parser.parse(in_fn, schema, DBN_DT_FMT, tz)
+    sym_data, input = parser.parse(in_fn, tz, src)
     mask            = []
 
     if input:

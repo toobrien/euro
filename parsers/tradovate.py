@@ -1,10 +1,12 @@
-from    enum                    import  IntEnum
-from    polars                  import  col, Datetime, read_csv
-from    sys                     import  path
+from    config      import TS_FMT
+from    datetime    import datetime, timedelta
+from    enum        import IntEnum
+from    polars      import col, Datetime, read_csv
+from    sys         import path
 
 path.append(".")
 
-from    util                    import  get_sym_data
+from    util        import get_sym_data
 
 
 class trade_row(IntEnum):
@@ -29,22 +31,27 @@ TV_DT_FMT = "%m/%d/%Y %H:%M:%S"
 
 def parse(
     in_fn:      str,
-    schema:     str,
-    out_dt_fmt: str,
-    tz:         str
+    tz:         str,
+    src:        str
 ):
 
     trades      = read_csv(in_fn)
     trades      = trades.with_columns(
                     [
-                        col("boughtTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(out_dt_fmt).alias("boughtTimestamp"),
-                        col("soldTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(out_dt_fmt).alias("soldTimestamp")
+                        col("boughtTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(TS_FMT).alias("boughtTimestamp"),
+                        col("soldTimestamp").str.strptime(Datetime, TV_DT_FMT).dt.strftime(TS_FMT).alias("soldTimestamp")
                     ]
                 )
+    in_rows     = trades.rows()
+    dates       = sorted(
+                    [ row[trade_row.boughtTimestamp].split("T")[0] for row in in_rows ] + 
+                    [ row[trade_row.soldTimestamp].split("T")[0] for row in in_rows ]
+                )
+    start       = dates[0]
+    end         = (datetime.strptime(dates[-1], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
     symbols     = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
     input       = []
-    sym_data    = get_sym_data(symbols, schema, out_dt_fmt, tz)
-    in_rows     = trades.rows()
+    sym_data    = get_sym_data(symbols, start, end, tz, src)
 
     for trade in in_rows:
 
