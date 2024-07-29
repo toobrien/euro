@@ -1,8 +1,9 @@
 from    bisect                  import  bisect_left
-from    numpy                   import  array
+from    math                    import  log
+from    numpy                   import  array, cumsum
 from    os.path                 import  join
 from    parsers                 import  tradovate
-from    polars                  import  DataFrame, Config
+from    polars                  import  col, Config, DataFrame
 from    sys                     import  argv
 
 
@@ -44,7 +45,7 @@ if __name__ == "__main__":
 
             ts      = sym_data[symbol]["ts"]
             qty     = row[2]
-            px      = sym_data[symbol]["close"]
+            px      = sym_data[symbol]["open"]
             in_ts   = row[1]
 
             if in_ts < ts[0] or in_ts > ts[-1]:
@@ -79,21 +80,29 @@ if __name__ == "__main__":
             in_position     = in_rows[0][2]
             in_pnl          = 0.
             in_pnls         = [ in_pnl ]
-            
+            in_ret          = 0.
+            in_rets         = [ in_ret ]
             out_rows        = [ row for row in output if row[0] == symbol ]
             out_position    = out_rows[0][3]
             out_pnl         = 0.
             out_pnls        = [ out_pnl ]
+            out_ret         = 0.
+            out_rets        = [ out_ret ]
+            in_dates        = [ row[1].split("T")[0] for row in input ]
             
             for i in range(1, len(in_rows)):
 
-                in_pnl          += in_position * (in_rows[i][3] - in_rows[i - 1][3])
-                in_position     += in_rows[i][2]
-                out_pnl         += out_position * (out_rows[i][4] - out_rows[i - 1][4])
-                out_position    += out_rows[i][3]
-                
+                in_pnl          =   in_position * (in_rows[i][3] - in_rows[i - 1][3])
+                in_ret          =   in_position * log(in_rows[i][3] / in_rows[i - 1][3])
+                in_position     +=  in_rows[i][2]
+                out_pnl         =   out_position * (out_rows[i][4] - out_rows[i - 1][4])
+                out_ret         =   out_position * log(out_rows[i][4] / out_rows[i - 1][4])
+                out_position    +=  out_rows[i][3]
+
                 in_pnls.append(in_pnl)
+                in_rets.append(in_ret)
                 out_pnls.append(out_pnl)
+                out_rets.append(out_ret)
 
             in_pnls         = array(in_pnls)
             out_pnls        = array(out_pnls)
@@ -101,7 +110,6 @@ if __name__ == "__main__":
             out_px          = array([ row[4] for row in out_rows ])
             diff_px         = out_px - in_px
             diff_pnl        = out_pnls - in_pnls
-            diff_pnl_pct    = (out_pnls / in_pnls - 1) * 100
 
             df = DataFrame(
                     {
@@ -116,8 +124,48 @@ if __name__ == "__main__":
                         "in_pnl":       in_pnls,
                         "out_pnl":      out_pnls,
                         "diff_pnl":     diff_pnl,
-                        "diff_pnl (%)": diff_pnl_pct
+                        "in_pnl_cum":   cumsum(in_pnls),
+                        "out_pnl_cum":  cumsum(out_pnls),
+                        "diff_pnl_cum": cumsum(diff_pnl)
+                        
                     }
                 )
+            
+            df = df.with_columns((col("out_pnl_cum") / col("in_pnl_cum") - 1).alias("diff_pnl_cum_pct"))
+
+            print("\ntrade, cumulative\n")
 
             print(df)
+
+            # daily returns
+
+            print("\ndaily\n")
+            
+            day_df  = DataFrame(
+                        { 
+                            "date":     in_dates, 
+                            "in_pnl":   in_pnls, 
+                            "out_pnl":  out_pnls,
+                            "diff_pnl": diff_pnl,
+                            "in_ret":   in_rets,  
+                            "out_ret":  out_rets
+                        }
+                    )
+            day_df      = day_df.group_by(
+                            "date", 
+                            maintain_order = True
+                        ).agg(
+                            [ 
+                                col("in_pnl").sum(),
+                                col("out_pnl").sum(),
+                                col("diff_pnl").sum(),
+                                col("in_ret").sum(),
+                                col("out_ret").sum()
+                            ]
+                        )
+            
+            print(day_df)
+            
+            print(f"\n{'':10}{'pnl':>10}{'ret':>10}")
+            print(f"{'in:':10}{day_df['in_pnl'].sum():>10}{day_df['in_ret'].sum() * 100:>9.2f}%")
+            print(f"{'out:':10}{day_df['out_pnl'].sum():>10}{day_df['out_ret'].sum() * 100:>9.2f}%\n")
