@@ -1,11 +1,11 @@
-from    config      import  TS_FMT
 from    datetime    import  datetime, timedelta
 import  polars      as      pl
 from    sys         import  path
 
 path.append(".")
 
-from util           import get_sym_data
+from    config      import  TS_FMT
+from    util        import get_sym_data
 
 pl.Config.set_tbl_rows(50)
 pl.Config.set_tbl_cols(-1)
