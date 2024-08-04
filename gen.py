@@ -1,8 +1,9 @@
+from    config                  import  FUT_DEFS
 from    bisect                  import  bisect_left
 from    math                    import  log
 from    numpy                   import  array, cumsum
 from    os.path                 import  join
-from    parsers                 import  tradovate
+from    parsers                 import  ninjatrader, tradovate, thinkorswim
 from    polars                  import  col, Config, DataFrame
 from    sys                     import  argv
 
@@ -10,7 +11,11 @@ from    sys                     import  argv
 # python gen.py euro_in sc Europe/Berlin tradovate 1
 
 
-PARSERS = { "tradovate": tradovate }
+PARSERS = { 
+            "tradovate":    tradovate,
+            "thinkorswim":  thinkorswim,
+            "ninjatrader":  ninjatrader
+        }
 
 
 Config.set_tbl_cols(-1)
@@ -36,6 +41,14 @@ if __name__ == "__main__":
         for row in input:
 
             symbol = row[0]
+            scale  = 1.0
+
+            if symbol in FUT_DEFS and FUT_DEFS[symbol]["alias"]:
+
+                # use mini data for micros, and scale qty
+
+                scale   = FUT_DEFS[symbol]["scale"]
+                symbol  = FUT_DEFS[symbol]["alias"]
 
             if symbol not in sym_data:
 
@@ -44,7 +57,7 @@ if __name__ == "__main__":
                 continue
 
             ts      = sym_data[symbol]["ts"]
-            qty     = row[2]
+            qty     = row[2] * scale
             px      = sym_data[symbol]["open"]
             in_ts   = row[1]
 

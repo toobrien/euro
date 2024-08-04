@@ -1,0 +1,25 @@
+tradovate:
+
+
+ninjatrader:
+
+1. Click "trade performance" under the "new" tab in the Ninjatrader dashboard.
+2. From the "display" drop down menu select "trades".
+3. Select the filter icon next to the display drop down menu and select the desired account(s).
+4. Adjust the trading range in the top right and click "generate".
+5. Right-click to access "properties" and scroll down to open the "Columns-Trades" drop down menu.
+6. Select the following boxes:
+
+    - "instrument"
+    - "entry time"
+    - "exit time"
+    - "market pos."
+    - "quantity"
+    - "entry price"
+    - "exit price" 
+    
+7. Click "apply".
+8. Right click and select "export" to export the file as CSV.
+
+tradingview:
+thinkorswim:

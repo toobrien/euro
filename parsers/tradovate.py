@@ -1,12 +1,12 @@
-from    config      import TS_FMT
-from    datetime    import datetime, timedelta
-from    enum        import IntEnum
-from    polars      import col, Datetime, read_csv
-from    sys         import path
+from config     import TS_FMT
+from datetime   import datetime, timedelta
+from enum       import IntEnum
+from polars     import col, Datetime, read_csv
+from sys        import path
 
 path.append(".")
 
-from    util        import get_sym_data
+from util       import get_sym_data
 
 
 class trade_row(IntEnum):
