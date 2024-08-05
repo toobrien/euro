@@ -41,14 +41,6 @@ if __name__ == "__main__":
         for row in input:
 
             symbol = row[0]
-            scale  = 1.0
-
-            if symbol in FUT_DEFS and FUT_DEFS[symbol]["alias"]:
-
-                # use mini data for micros, and scale qty
-
-                scale   = FUT_DEFS[symbol]["scale"]
-                symbol  = FUT_DEFS[symbol]["alias"]
 
             if symbol not in sym_data:
 
@@ -57,7 +49,7 @@ if __name__ == "__main__":
                 continue
 
             ts      = sym_data[symbol]["ts"]
-            qty     = row[2] * scale
+            qty     = row[2]
             px      = sym_data[symbol]["open"]
             in_ts   = row[1]
 

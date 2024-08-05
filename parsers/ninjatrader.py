@@ -1,3 +1,4 @@
+from    config      import  FUT_DEFS
 from    datetime    import  datetime, timedelta
 import  polars      as      pl
 from    sys         import  path
@@ -34,13 +35,18 @@ def parse(
     end         = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
     sym_data    = get_sym_data(symbols, start, end, tz, src)
 
-    print(trades.head())
-
     for i in range(trades.height):
 
         instrument  = trades["Instrument"][i].split()[0]
+        scale       = 1.0
+        
+        if FUT_DEFS[instrument]["alias"]:
+
+            scale       = FUT_DEFS[instrument]["scale"]
+            instrument  = FUT_DEFS[instrument]["alias"]
+
         market_pos  = 1 if trades["Market pos."][i] == "Long" else -1
-        qty         = trades["Qty"][i] * market_pos
+        qty         = trades["Qty"][i] * market_pos * scale
         entry_time  = trades["Entry time"][i]
         entry_price = trades["Entry price"][i]
         exit_time   = trades["Exit time"][i]

@@ -1,4 +1,4 @@
-from config     import TS_FMT
+from config     import TS_FMT, FUT_DEFS
 from datetime   import datetime, timedelta
 from enum       import IntEnum
 from polars     import col, Datetime, read_csv
@@ -55,10 +55,17 @@ def parse(
 
     for trade in in_rows:
 
-        symbol      = trade[trade_row.symbol][:-2]
+        symbol  = trade[trade_row.symbol][:-2]
+        scale   = 1.0
+
+        if FUT_DEFS[symbol]["alias"]:
+
+            scale   = FUT_DEFS[symbol]["scale"]
+            symbol  = FUT_DEFS[symbol]["alias"]
+
         in_buy_ts   = trade[trade_row.boughtTimestamp]
         in_sell_ts  = trade[trade_row.soldTimestamp]
-        in_qty      = trade[trade_row.qty]
+        in_qty      = trade[trade_row.qty] * scale
         in_buy_px   = trade[trade_row.buyPrice]
         in_sell_px  = trade[trade_row.sellPrice]
         
