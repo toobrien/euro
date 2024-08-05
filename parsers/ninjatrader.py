@@ -36,6 +36,17 @@ def parse(
 
     print(trades.head())
 
-    exit()
+    for i in range(trades.height):
 
-    return None, None
+        instrument  = trades["Instrument"][i].split()[0]
+        market_pos  = 1 if trades["Market pos."][i] == "Long" else -1
+        qty         = trades["Qty"][i] * market_pos
+        entry_time  = trades["Entry time"][i]
+        entry_price = trades["Entry price"][i]
+        exit_time   = trades["Exit time"][i]
+        exit_price  = trades["Exit price"][i]
+
+        input.append(( instrument, entry_time, qty, entry_price ))
+        input.append(( instrument, exit_time, qty * -1, exit_price ))
+
+    return sym_data, input
