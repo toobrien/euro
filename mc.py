@@ -39,16 +39,16 @@ if __name__ == "__main__":
     for symbol in symbols:
 
         rows        = hist.filter(col("symbol") == symbol).rows()
-        start       = rows[0][-2]
-        stop        = rows[-1][-2]
-        prices      = sym_data[symbol]["open"]
+        start       = rows[0][-3]
+        stop        = rows[-1][-3]
+        prices      = sym_data[symbol]["close"]
         chgs        = diff(prices)
         logs        = diff(log(prices))
         position    = zeros(len(chgs))
 
         for row in rows:
 
-            position[row[-2]:]+= row[-1]
+            position[row[-3]:]+= row[-2]
 
         if debug:
 
