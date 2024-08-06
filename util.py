@@ -50,9 +50,11 @@ def get_sc_df(
                                         }
                 ).with_columns(
                     (
-                        pl.col("date") + pl.col("time") + sc_offset
+                        pl.col("date") + pl.col("time")
                     ).str.strptime(
-                        pl.Datetime, "%Y/%m/%d %H:%M:%S%z"
+                        pl.Datetime, "%Y/%m/%d %H:%M:%S"
+                    ).dt.replace_time_zone(
+                        SC_TZ
                     ).dt.convert_time_zone(
                         out_tz
                     ).dt.strftime(

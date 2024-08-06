@@ -163,11 +163,12 @@ if __name__ == "__main__":
             text.append(i)
 
         traces = [
-            ( "open",   o_trace, "#FF00FF" ),
-            ( "high",   h_trace, "#0000FF" ),
-            ( "low",    l_trace, "#FF0000" ),
-            ( "close",  c_trace, "#00FFFF" ),
-            ( "avg",    a_trace, "#CCCCCC" )
+            ( "open",   o_trace,    "#00FFFF" ),
+            ( "high",   h_trace,    "#0000FF" ),
+            ( "low",    l_trace,    "#FF0000" ),
+            ( "close",  c_trace,    "#FF00FF" ),
+            ( "avg",    a_trace,    "#CCCCCC" ),
+            ( "d_pnl",  diff_pnl,   "#000000" )
         ]
 
         print("\nerrors:\n")
@@ -177,11 +178,12 @@ if __name__ == "__main__":
             fig.add_trace(
                 go.Scatter(
                     {
-                        "x":    X,
-                        "y":    trace[1],
-                        "name": trace[0],
-                        "mode": "markers",
-                        "text": text
+                        "x":        X,
+                        "y":        trace[1],
+                        "name":     trace[0],
+                        "mode":     "markers",
+                        "marker":   { "color": trace[2] },
+                        "text":     text
 
                     }
                 )
