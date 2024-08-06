@@ -1,10 +1,11 @@
-from datetime   import datetime, timedelta
-from numpy      import array, cumsum
-from math       import log
-from os.path    import join
-from polars     import col, Config, DataFrame, read_csv
-from sys        import argv, path
-from time       import time
+from    datetime                import  datetime, timedelta
+from    numpy                   import  array, cumsum
+from    math                    import  log
+from    os.path                 import  join
+import  plotly.graph_objects    as      go
+from    polars                  import  col, Config, DataFrame, read_csv
+from    sys                     import  argv, path
+from    time                    import  time
 
 path.append(".")
 
@@ -30,7 +31,7 @@ if __name__ == "__main__":
     symbols     = set([ row[0] for row in input ])
     start       = input[0][1].split("T")[0]
     end         = (datetime.strptime(input[-1][1].split("T")[0], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
-    #sym_data    = get_sym_data(symbols, start, end, tz, src)
+    sym_data    = get_sym_data(symbols, start, end, tz, src)
 
     for symbol in symbols:
 
@@ -71,6 +72,7 @@ if __name__ == "__main__":
 
         df = DataFrame(
                 {
+                    "trade":        [ i for i in range(len(in_rows)) ],
                     "symbol":       [ row[0] for row in out_rows ],
                     "in_ts":        [ row[1] for row in in_rows ],
                     "out_ts":       [ row[1] for row in out_rows ],
@@ -127,7 +129,68 @@ if __name__ == "__main__":
         print(f"\n{'':10}{'pnl':>10}{'ret':>10}")
         print(f"{'in:':10}{day_df['in_pnl'].sum():>10.2f}{day_df['in_ret'].sum() * 100:>9.2f}%")
         print(f"{'out:':10}{day_df['out_pnl'].sum():>10.2f}{day_df['out_ret'].sum() * 100:>9.2f}%\n")
+
+        # error plot
+
+        fig         = go.Figure()
+        opens       = sym_data[symbol]["open"]
+        highs       = sym_data[symbol]["high"]
+        lows        = sym_data[symbol]["low"]
+        closes      = sym_data[symbol]["close"]
+        idxs        = [ row[2] for row in output ]
+        X           = [ row[1] for row in in_rows ]
+        o_trace     = []
+        h_trace     = []
+        l_trace     = []
+        c_trace     = []
+        a_trace     = []
+        text        = []
+
+        for i in range(len(in_px)):
+
+            in_price    = in_px[i]
+            idx         = idxs[i]
+            o_          = opens[idx] - in_price
+            h_          = highs[idx] - in_price
+            l_          = lows[idx] - in_price
+            c_          = closes[idx] - in_price
+
+            o_trace.append(o_)
+            h_trace.append(h_)
+            l_trace.append(l_)
+            c_trace.append(c_)
+            a_trace.append((o_ + c_) / 2)
+            text.append(i)
+
+        traces = [
+            ( "open",   o_trace, "#FF00FF" ),
+            ( "high",   h_trace, "#0000FF" ),
+            ( "low",    l_trace, "#FF0000" ),
+            ( "close",  c_trace, "#00FFFF" ),
+            ( "avg",    a_trace, "#CCCCCC" )
+        ]
+
+        print("\nerrors:\n")
+
+        for trace in traces:
+
+            fig.add_trace(
+                go.Scatter(
+                    {
+                        "x":    X,
+                        "y":    trace[1],
+                        "name": trace[0],
+                        "mode": "markers",
+                        "text": text
+
+                    }
+                )
+            )
+
+            print(f"{trace[0]:10}{sum(trace[1]):>10.2f}")
+
+        fig.show()
     
-    print(f"{time() - t0:0.1f}s")
+    print(f"\n{time() - t0:0.1f}s\n")
 
     pass
