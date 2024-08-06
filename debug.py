@@ -163,11 +163,11 @@ if __name__ == "__main__":
             text.append(i)
 
         traces = [
-            ( "open",   o_trace,    "#00FFFF" ),
-            ( "high",   h_trace,    "#0000FF" ),
-            ( "low",    l_trace,    "#FF0000" ),
+            #( "open",   o_trace,    "#00FFFF" ),
+            #( "high",   h_trace,    "#0000FF" ),
+            #( "low",    l_trace,    "#FF0000" ),
             ( "close",  c_trace,    "#FF00FF" ),
-            ( "avg",    a_trace,    "#CCCCCC" ),
+            #( "avg",    a_trace,    "#CCCCCC" ),
             ( "d_pnl",  diff_pnl,   "#000000" )
         ]
 
@@ -190,6 +190,8 @@ if __name__ == "__main__":
             )
 
             print(f"{trace[0]:10}{sum(trace[1]):>10.2f}")
+
+        fig.add_hline(y = 0, line_color = "#FF0000")
 
         fig.show()
     
