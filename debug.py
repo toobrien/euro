@@ -138,13 +138,13 @@ if __name__ == "__main__":
         lows        = sym_data[symbol]["low"]
         closes      = sym_data[symbol]["close"]
         idxs        = [ row[2] for row in output ]
-        X           = [ row[1] for row in in_rows ]
+        X           = [ i for i in range(len(in_px)) ]
+        text        = [ row[1] for row in in_rows ]
         o_trace     = []
         h_trace     = []
         l_trace     = []
         c_trace     = []
         a_trace     = []
-        text        = []
 
         for i in range(len(in_px)):
 
@@ -160,7 +160,6 @@ if __name__ == "__main__":
             l_trace.append(l_)
             c_trace.append(c_)
             a_trace.append((o_ + c_) / 2)
-            text.append(i)
 
         traces = [
             #( "open",   o_trace,    "#00FFFF" ),
