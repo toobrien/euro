@@ -1,5 +1,5 @@
 from    datetime                import  datetime, timedelta
-from    numpy                   import  array, cumsum
+from    numpy                   import  array, cumsum, mean
 from    math                    import  log
 from    os.path                 import  join
 import  plotly.graph_objects    as      go
@@ -168,10 +168,12 @@ if __name__ == "__main__":
             #( "low",    l_trace,    "#FF0000" ),
             ( "close",  c_trace,    "#FF00FF" ),
             #( "avg",    a_trace,    "#CCCCCC" ),
-            ( "d_pnl",  diff_pnl,   "#000000" )
+            ( "pnl",    diff_pnl,   "#000000" )
         ]
 
         print("\nerrors:\n")
+
+        print(f"{'':15}{'total':>10}{'p_pos':>10}{'p_neg':>10}\n")
 
         for trace in traces:
 
@@ -189,12 +191,23 @@ if __name__ == "__main__":
                 )
             )
 
-            print(f"{trace[0]:10}{sum(trace[1]):>10.2f}")
+            pos_err = mean([ 1 if val > 0 else 0 for val in trace[1] ])
+            neg_err = mean([ 1 if val < 0 else 0 for val in trace[1] ])
+
+            print(f"{trace[0]:15}{sum(trace[1]):>10.2f}{pos_err:>10.2f}{neg_err:>10.2f}")
 
         fig.add_hline(y = 0, line_color = "#FF0000")
 
         fig.show()
-    
-    print(f"\n{time() - t0:0.1f}s\n")
 
-    pass
+        positions   = [ in_rows[i][2] for i in range(0, len(in_rows), 2) ]
+        p_long      = mean([ 1 if val > 0 else 0 for val in positions ])
+        p_short     = 1 - p_long
+        p_diff_pos  = mean([ 1 if val > 0 else 0 for val in diff_pnl ])
+        p_diff_neg  = mean([ 1 if val < 0 else 0 for val in diff_pnl ])
+        
+        print("\n")
+        print(f"{'p_long:':15}{p_long:>10.2f}")
+        print(f"{'p_short:':15}{p_short:>10.2f}\n")
+    
+    print(f"{time() - t0:0.1f}s\n")
