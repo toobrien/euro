@@ -125,8 +125,8 @@ if __name__ == "__main__":
         print(day_df)
         
         print(f"\n{'':10}{'pnl':>10}{'ret':>10}")
-        print(f"{'in:':10}{day_df['in_pnl'].sum():>10}{day_df['in_ret'].sum() * 100:>9.2f}%")
-        print(f"{'out:':10}{day_df['out_pnl'].sum():>10}{day_df['out_ret'].sum() * 100:>9.2f}%\n")
+        print(f"{'in:':10}{day_df['in_pnl'].sum():>10.2f}{day_df['in_ret'].sum() * 100:>9.2f}%")
+        print(f"{'out:':10}{day_df['out_pnl'].sum():>10.2f}{day_df['out_ret'].sum() * 100:>9.2f}%\n")
     
     print(f"{time() - t0:0.1f}s")
 
