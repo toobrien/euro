@@ -172,7 +172,7 @@ if __name__ == "__main__":
 
         print("\nerrors:\n")
 
-        print(f"{'':15}{'total':>10}{'p_pos':>10}{'p_neg':>10}\n")
+        print(f"{'':15}{'total':>10}{'pos_pct':>10}{'pos_mean':>10}{'neg_pct':>10}{'neg_mean':>10}\n")
 
         for trace in traces:
 
@@ -190,10 +190,14 @@ if __name__ == "__main__":
                 )
             )
 
-            pos_err = mean([ 1 if val > 0 else 0 for val in trace[1] ])
-            neg_err = mean([ 1 if val < 0 else 0 for val in trace[1] ])
+            pos_errs = [ i for i in trace[1] if i > 0 ]
+            pos_pct  = len(pos_errs) / len(trace[1])
+            pos_mean = mean(pos_errs)
+            neg_errs = [ i for i in trace[1] if i < 0 ]
+            neg_pct  = len(neg_errs) / len(trace[1])
+            neg_mean = mean(neg_errs)
 
-            print(f"{trace[0]:15}{sum(trace[1]):>10.2f}{pos_err:>10.2f}{neg_err:>10.2f}")
+            print(f"{trace[0]:15}{sum(trace[1]):>10.2f}{pos_pct:>10.2f}{pos_mean:>10.2f}{neg_pct:>10.2f}{neg_mean:>10.2f}")
 
         fig.add_hline(y = 0, line_color = "#FF0000")
 
@@ -202,11 +206,15 @@ if __name__ == "__main__":
         positions   = [ in_rows[i][2] for i in range(0, len(in_rows), 2) ]
         p_long      = mean([ 1 if val > 0 else 0 for val in positions ])
         p_short     = 1 - p_long
-        p_diff_pos  = mean([ 1 if val > 0 else 0 for val in diff_pnl ])
-        p_diff_neg  = mean([ 1 if val < 0 else 0 for val in diff_pnl ])
         
         print("\n")
-        print(f"{'p_long:':15}{p_long:>10.2f}")
-        print(f"{'p_short:':15}{p_short:>10.2f}\n")
+        print(f"{'long:':15}{p_long:>10.2f}")
+        print(f"{'short:':15}{p_short:>10.2f}\n")
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Histogram(x = diff_pnl, name = "diff_pnl"))
+
+        fig.show()
     
     print(f"{time() - t0:0.1f}s\n")
