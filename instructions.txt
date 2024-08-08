@@ -10,13 +10,13 @@ ninjatrader:
 5. Right-click to access "properties" and scroll down to open the "Columns-Trades" drop down menu.
 6. Select the following boxes:
 
-    - "instrument"
-    - "entry time"
-    - "exit time"
-    - "market pos."
-    - "quantity"
-    - "entry price"
-    - "exit price" 
+    - "Instrument"
+    - "Entry time"
+    - "Exit time"
+    - "Market pos."
+    - "Quantity"
+    - "Entry price"
+    - "Exit price"
     
 7. Click "apply".
 8. Right click and select "export" to export the file as CSV.
