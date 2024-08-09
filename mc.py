@@ -9,7 +9,7 @@ from    polars                  import  DataFrame, col, Config, read_csv
 import  plotly.graph_objects    as      go 
 from    sys                     import  argv
 from    time                    import  time
-from    util                    import  get_sym_data
+from    util                    import  get_sym_data, out_row
 
 
 # python mc.py euro_out sc Europe/Berlin
@@ -27,28 +27,33 @@ if __name__ == "__main__":
 
     t0          = time()
     fn          = join(".", "csvs", f"{argv[1]}.csv")
-    hist        = read_csv(fn)
-    symbols     = list(hist["symbol"].unique())
+    out         = read_csv(fn)
+    symbols     = list(out["symbol"].unique())
     src         = argv[2]
     tz          = argv[3]
     debug       = int(argv[4])
-    start       = hist["ts"][0].split("T")[0]
-    end         = (datetime.strptime(hist["ts"][-1].split("T")[0], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+    start       = out["ts"][0].split("T")[0]
+    end         = (datetime.strptime(out["ts"][-1].split("T")[0], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
     sym_data    = get_sym_data(symbols, start, end, tz, src)
 
     for symbol in symbols:
 
-        rows        = hist.filter(col("symbol") == symbol).rows()
-        start       = rows[0][-3]
-        stop        = rows[-1][-3]
+        rows        = out.filter(col("symbol") == symbol).rows()
         prices      = sym_data[symbol]["close"]
+
+        # adjust for error
+
+        for row in rows:
+
+            prices[row[out_row.idx]] = row[out_row.in_price]
+
         chgs        = diff(prices)
         logs        = diff(log(prices))
         position    = zeros(len(chgs))
 
         for row in rows:
 
-            position[row[-3]:]+= row[-2]
+            position[row[out_row.idx]:] += row[out_row.pos_chg]
 
         if debug:
 

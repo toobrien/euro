@@ -11,7 +11,7 @@ from    time                    import  time
 
 path.append(".")
 
-from util       import get_sym_data
+from util       import get_sym_data, in_row, out_row
 
 
 Config.set_tbl_rows(-1)
@@ -38,9 +38,9 @@ if __name__ == "__main__":
     tz          = argv[3]
     input       = read_csv(debug_fn).rows()
     output      = read_csv(out_fn).rows()
-    symbols     = set([ row[0] for row in input ])
-    start       = input[0][1].split("T")[0]
-    end         = (datetime.strptime(input[-1][1].split("T")[0], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+    symbols     = set([ row[in_row.symbol] for row in input ])
+    start       = input[0][in_row.ts].split("T")[0]
+    end         = (datetime.strptime(input[-1][in_row.ts].split("T")[0], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
     sym_data    = get_sym_data(symbols, start, end, tz, src)
 
     for symbol in symbols:
@@ -49,27 +49,27 @@ if __name__ == "__main__":
         highs           = sym_data[symbol]["high"]
         lows            = sym_data[symbol]["low"]
         closes          = sym_data[symbol]["close"]
-        in_rows         = [ row for row in input if row[0] == symbol ]
-        in_position     = in_rows[0][2]
+        in_rows         = [ row for row in input if row[in_row.symbol] == symbol ]
+        in_position     = in_rows[0][in_row.qty]
         in_pnl          = 0.
         in_pnls         = [ in_pnl ]
         in_ret          = 0.
         in_rets         = [ in_ret ]
-        out_rows        = [ row for row in output if row[0] == symbol ]
-        out_position    = out_rows[0][3]
+        out_rows        = [ row for row in output if row[out_row.symbol] == symbol ]
+        out_position    = out_rows[0][out_row.pos_chg]
         out_pnl         = 0.
         out_pnls        = [ out_pnl ]
         out_ret         = 0.
         out_rets        = [ out_ret ]
-        in_dates        = [ row[1].split("T")[0] for row in input ]
+        in_dates        = [ row[in_row.ts].split("T")[0] for row in input ]
         
         for i in range(1, len(in_rows)):
 
-            in_pnl          =   in_position * (in_rows[i][3] - in_rows[i - 1][3])
-            in_ret          =   in_position * log(in_rows[i][3] / in_rows[i - 1][3])
+            in_pnl          =   in_position * (in_rows[i][in_row.price] - in_rows[i - 1][in_row.price])
+            in_ret          =   in_position * log(in_rows[i][in_row.price] / in_rows[i - 1][in_row.price])
             in_position     +=  in_rows[i][2]
-            out_pnl         =   out_position * (out_rows[i][4] - out_rows[i - 1][4])
-            out_ret         =   out_position * log(out_rows[i][4] / out_rows[i - 1][4])
+            out_pnl         =   out_position * (out_rows[i][out_row.out_price] - out_rows[i - 1][out_row.out_price])
+            out_ret         =   out_position * log(out_rows[i][out_row.out_price] / out_rows[i - 1][out_row.out_price])
             out_position    +=  out_rows[i][3]
 
             in_pnls.append(in_pnl)
@@ -79,8 +79,8 @@ if __name__ == "__main__":
 
         in_pnls         = array(in_pnls)
         out_pnls        = array(out_pnls)
-        in_px           = array([ row[3] for row in in_rows ])
-        out_px          = array([ row[4] for row in out_rows ])
+        in_px           = array([ row[in_row.price] for row in in_rows ])
+        out_px          = array([ row[out_row.out_price] for row in out_rows ])
         diff_px         = out_px - in_px
         diff_pnl        = out_pnls - in_pnls
 
@@ -89,11 +89,11 @@ if __name__ == "__main__":
             df = DataFrame(
                     {
                         "trade":        [ i for i in range(len(in_rows)) ],
-                        "symbol":       [ row[0] for row in out_rows ],
-                        "in_ts":        [ row[1] for row in in_rows ],
-                        "out_ts":       [ row[1] for row in out_rows ],
-                        "in_qty":       [ row[2] for row in in_rows ],
-                        "out_qty":      [ row[3] for row in out_rows ],
+                        "symbol":       [ row[out_row.symbol] for row in out_rows ],
+                        "in_ts":        [ row[in_row.ts] for row in in_rows ],
+                        "out_ts":       [ row[out_row.ts] for row in out_rows ],
+                        "in_qty":       [ row[in_row.qty] for row in in_rows ],
+                        "out_qty":      [ row[out_row.pos_chg] for row in out_rows ],
                         "in_px":        in_px,
                         "out_px":       out_px,
                         "diff_px":      diff_px,
@@ -144,18 +144,18 @@ if __name__ == "__main__":
             
             print(day_df)
             
-            print(f"\n{'':10}{'pnl':>10}{'ret':>10}")
-            print(f"{'in:':10}{day_df['in_pnl'].sum():>10.2f}{day_df['in_ret'].sum() * 100:>9.2f}%")
-            print(f"{'out:':10}{day_df['out_pnl'].sum():>10.2f}{day_df['out_ret'].sum() * 100:>9.2f}%\n")
+            print(f"\n{'':15}{'pnl':>10}{'ret':>10}")
+            print(f"{'in:':15}{day_df['in_pnl'].sum():>10.2f}{day_df['in_ret'].sum() * 100:>9.2f}%")
+            print(f"{'out:':15}{day_df['out_pnl'].sum():>10.2f}{day_df['out_ret'].sum() * 100:>9.2f}%\n")
 
         # error plot
 
         if SHOW_ERRS:
 
             fig         = go.Figure()
-            idxs        = [ row[2] for row in output ]
+            idxs        = [ row[out_row.idx] for row in output ]
             X           = [ i for i in range(len(in_px)) ]
-            text        = [ row[1] for row in in_rows ]
+            text        = [ row[in_row.ts] for row in in_rows ]
             o_trace     = []
             h_trace     = []
             l_trace     = []
@@ -221,7 +221,9 @@ if __name__ == "__main__":
 
                 fig.show()
 
-                positions   = [ in_rows[i][2] for i in range(0, len(in_rows), 2) ]
+                # "positions" is only valid for non-overlapping trades
+                
+                positions   = [ in_rows[i][in_row.qty] for i in range(0, len(in_rows), 2) ]
                 p_long      = mean([ 1 if val > 0 else 0 for val in positions ])
                 p_short     = 1 - p_long
                 

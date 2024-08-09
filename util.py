@@ -1,10 +1,29 @@
 from    datetime    import  datetime
 from    config      import  DBN_PATH, FUT_DEFS, SC_PATH, SC_TZ, TS_FMT
+from    enum        import  IntEnum
 from    numpy       import  array
 from    os.path     import  join
 import  polars      as      pl
 from    pytz        import  timezone
 from    typing      import  List
+
+
+class in_row(IntEnum):
+
+    symbol  = 0
+    ts      = 1
+    qty     = 2
+    price   = 3
+
+
+class out_row(IntEnum):
+
+    symbol      = 0
+    ts          = 1
+    idx         = 2
+    pos_chg     = 3
+    in_price    = 4
+    out_price   = 5
 
 
 def get_dbn_df(

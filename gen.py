@@ -4,6 +4,7 @@ from    parsers import  ninjatrader, tradovate, thinkorswim
 from    polars  import  Config, DataFrame
 from    sys     import  argv
 from    time    import  time
+from    util    import  in_row, out_row
 
 
 # python gen.py euro_in sc Europe/Berlin tradovate 1
@@ -39,7 +40,7 @@ if __name__ == "__main__":
 
         for row in input:
 
-            symbol = row[0]
+            symbol = row[in_row.symbol]
 
             if symbol not in sym_data:
 
@@ -48,9 +49,9 @@ if __name__ == "__main__":
                 continue
 
             ts      = sym_data[symbol]["ts"]
-            qty     = row[2]
+            qty     = row[in_row.qty]
             px      = sym_data[symbol]["close"]
-            in_ts   = row[1]
+            in_ts   = row[in_row.ts]
 
             if in_ts < ts[0] or in_ts > ts[-1]:
 
@@ -62,13 +63,14 @@ if __name__ == "__main__":
             
             out_idx = bisect_left(ts, in_ts)
             out_ts  = ts[out_idx]
+            in_px   = row[in_row.price]
             out_px  = px[out_idx]
 
-            output.append(( symbol, out_ts, out_idx, qty, out_px ))
+            output.append(( symbol, out_ts, out_idx, qty, in_px, out_px ))
 
         with open(out_fn, "w") as fd:
 
-            fd.write("symbol,ts,idx,pos_chg,price\n")
+            fd.write("symbol,ts,idx,pos_chg,in_price,out_price\n")
 
             for line in output:
 
@@ -80,10 +82,10 @@ if __name__ == "__main__":
         debug_fn    = f"{argv[1][:-3]}_debug.csv"
         df_debug    = DataFrame(
                         {
-                            "symbol":   [ row[0] for row in input ],
-                            "ts":       [ row[1] for row in input ],
-                            "qty":      [ row[2] for row in input ],
-                            "price":    [ row[3] for row in input ]
+                            "symbol":   [ row[in_row.symbol]    for row in input ],
+                            "ts":       [ row[in_row.ts]        for row in input ],
+                            "qty":      [ row[in_row.qty]       for row in input ],
+                            "price":    [ row[in_row.price]     for row in input ]
                         }
                     )
         
