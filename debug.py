@@ -21,9 +21,9 @@ Config.set_tbl_cols(-1)
 SHOW_TRADE_DF       = False
 SHOW_DAILY_RETURNS  = True
 SHOW_PNL_HIST       = False
-SHOW_OUTLIERS       = True
+SHOW_OUTLIERS       = False
 SHOW_ERRS           = True
-SHOW_ERR_PLOT       = False
+SHOW_ERR_PLOT       = True
 
 
 # python debug.py reset_pa sc Europe/Berlin
