@@ -115,7 +115,6 @@ if __name__ == "__main__":
 
         mask    = nonzero(position)
         Y       = cumsum(chgs * position)[mask]
-        T       = sym_data[symbol]["ts"][mask]        
         X       = [ i for i in range(len(Y)) ]
 
         if len(Y) > MAX_PNL_CHART_LEN:
