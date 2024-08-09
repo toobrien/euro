@@ -3,7 +3,7 @@ from    bisect                  import  bisect_left
 from    datetime                import  datetime, timedelta
 from    os.path                 import  join
 from    math                    import  sqrt
-from    numpy                   import  cumsum, diff, log, mean, nonzero, std, zeros
+from    numpy                   import  array, cumsum, diff, log, mean, nonzero, std, zeros
 from    numpy.random            import  default_rng
 from    polars                  import  DataFrame, col, Config, read_csv
 import  plotly.graph_objects    as      go 
@@ -12,7 +12,7 @@ from    time                    import  time
 from    util                    import  get_sym_data, out_row
 
 
-# python mc.py euro_out sc Europe/Berlin
+# python mc.py euro_out sc Europe/Berlin 0
 
 
 Config.set_tbl_rows(-1)
@@ -55,7 +55,11 @@ if __name__ == "__main__":
 
             position[row[out_row.idx]:] += row[out_row.pos_chg]
 
-        if debug:
+        # correct floating point error
+
+        position = array([ i if abs(i) > 1e-10 else 0 for i in position ])
+
+        if debug == 1:
 
             # set i and j to sample trade start idxs from outfile
 
@@ -116,6 +120,29 @@ if __name__ == "__main__":
         mask    = nonzero(position)
         Y       = cumsum(chgs * position)[mask]
         X       = [ i for i in range(len(Y)) ]
+
+        if debug == 2:
+
+            with open("./debug.txt", "w") as fd:
+            
+                T   = sym_data[symbol]["ts"][mask]
+                POS = position[mask]
+                Y_  = prices[mask]
+
+                if len(Y) > MAX_PNL_CHART_LEN:
+
+                    T   = [ T[i] for i in range(60, len(T), 60) ]    
+                    Y   = [ Y[i] for i in range(60, len(Y), 60) ]
+                    POS = [ POS[i] for i in range(60, len(POS), 60) ]
+                    Y_  = [ Y_[i] for i in range(60, len(Y_), 60) ]
+
+                for i in range(len(T)):
+
+                    fd.write(",".join([ T[i], f"{POS[i]:0.2f}", f"{Y[i]:0.2f}", f"{Y_[i]:0.2f}" ]) + "\n")
+
+            print("debug finished")
+
+            exit()
 
         if len(Y) > MAX_PNL_CHART_LEN:
 
