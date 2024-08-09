@@ -5,6 +5,7 @@ from    os.path                 import  join
 import  plotly.graph_objects    as      go
 from    plotly.subplots         import  make_subplots
 from    polars                  import  col, Config, DataFrame, read_csv
+from    random                  import  randint
 from    sys                     import  argv, path
 from    time                    import  time
 
@@ -22,6 +23,7 @@ SHOW_DAILY_RETURNS  = True
 SHOW_PNL_HIST       = False
 SHOW_OUTLIERS       = True
 SHOW_ERRS           = True
+SHOW_ERR_PLOT       = False
 
 
 # python debug.py reset_pa sc Europe/Berlin
@@ -188,42 +190,44 @@ if __name__ == "__main__":
 
             print(f"{'':15}{'total':>10}{'pos_pct':>10}{'pos_mean':>10}{'neg_pct':>10}{'neg_mean':>10}\n")
 
-            for trace in traces:
+            if SHOW_ERR_PLOT:
 
-                fig.add_trace(
-                    go.Scatter(
-                        {
-                            "x":        X,
-                            "y":        trace[1],
-                            "name":     trace[0],
-                            "mode":     "markers",
-                            "marker":   { "color": trace[2] },
-                            "text":     text
+                for trace in traces:
 
-                        }
+                    fig.add_trace(
+                        go.Scatter(
+                            {
+                                "x":        X,
+                                "y":        trace[1],
+                                "name":     trace[0],
+                                "mode":     "markers",
+                                "marker":   { "color": trace[2] },
+                                "text":     text
+
+                            }
+                        )
                     )
-                )
 
-                pos_errs = [ i for i in trace[1] if i > 0 ]
-                pos_pct  = len(pos_errs) / len(trace[1])
-                pos_mean = mean(pos_errs)
-                neg_errs = [ i for i in trace[1] if i < 0 ]
-                neg_pct  = len(neg_errs) / len(trace[1])
-                neg_mean = mean(neg_errs)
+                    pos_errs = [ i for i in trace[1] if i > 0 ]
+                    pos_pct  = len(pos_errs) / len(trace[1])
+                    pos_mean = mean(pos_errs)
+                    neg_errs = [ i for i in trace[1] if i < 0 ]
+                    neg_pct  = len(neg_errs) / len(trace[1])
+                    neg_mean = mean(neg_errs)
 
-                print(f"{trace[0]:15}{sum(trace[1]):>10.2f}{pos_pct:>10.2f}{pos_mean:>10.2f}{neg_pct:>10.2f}{neg_mean:>10.2f}")
+                    print(f"{trace[0]:15}{sum(trace[1]):>10.2f}{pos_pct:>10.2f}{pos_mean:>10.2f}{neg_pct:>10.2f}{neg_mean:>10.2f}")
 
-            fig.add_hline(y = 0, line_color = "#FF0000")
+                fig.add_hline(y = 0, line_color = "#FF0000")
 
-            fig.show()
+                fig.show()
 
-            positions   = [ in_rows[i][2] for i in range(0, len(in_rows), 2) ]
-            p_long      = mean([ 1 if val > 0 else 0 for val in positions ])
-            p_short     = 1 - p_long
-            
-            print("\n")
-            print(f"{'long:':15}{p_long:>10.2f}")
-            print(f"{'short:':15}{p_short:>10.2f}\n")
+                positions   = [ in_rows[i][2] for i in range(0, len(in_rows), 2) ]
+                p_long      = mean([ 1 if val > 0 else 0 for val in positions ])
+                p_short     = 1 - p_long
+                
+                print("\n")
+                print(f"{'long:':15}{p_long:>10.2f}")
+                print(f"{'short:':15}{p_short:>10.2f}\n")
 
         
         # pnl err hist
@@ -242,74 +246,87 @@ if __name__ == "__main__":
 
             # output:   symbol,ts,idx,pos_chg,price
 
-            N       = 5
-            buffer  = 30
-            width   = 1200
-            height  = 400 * N
+            N           = 50
+            n           = randint(0, N - 1)
+            buffer      = 10
+            width       = 1200
+            margin      = 20
+            height      = (400 + 2 * margin) * N
+            outliers    = sorted(
+                                [ 
+                                    ( 
+                                        i,                  # 0: trade index
+                                        in_px[i - 1],       # 1: prev in price
+                                        in_px[i],           # 2: cur in price
+                                        out_px[i - 1],      # 3: prev out price
+                                        out_px[i],          # 4: cur out price
+                                        out_rows[i - 1][2], # 5: prev idx
+                                        out_rows[i][2],     # 6: cur idx
+                                        diff_pnl[i]         # 7: error
+                                    ) 
+                                    for i in range(1, len(diff_pnl))
+                                ],
+                                key = lambda r: abs(r[-1])
+                            )[-N:]
+            selected    = outliers[n]
+            #fig        = make_subplots(rows = N, cols = 1, vertical_spacing = 0.02)
+            fig         = go.Figure()
 
-            outliers = sorted(
-                            [ 
-                                ( 
-                                    i,                  # 0: trade index
-                                    in_px[i - 1],       # 1: prev in price
-                                    in_px[i],           # 2: cur in price
-                                    out_px[i - 1],      # 3: prev out price
-                                    out_px[i],          # 4: cur out price
-                                    out_rows[i - 1][2], # 5: prev idx
-                                    out_rows[i][2],     # 6: cur idx
-                                    diff_pnl[i]         # 7: error
-                                ) 
-                                for i in range(1, len(diff_pnl))
-                            ],
-                            key = lambda r: abs(r[-1])
-                        )[-N:]
+            '''
+            fig.update_layout(
+                {
+                    "width":    width,
+                    "height":   height,
+                    "margin":   {
+                        "b":   margin,
+                        "t":      margin
+                    }
+                }
+            )
+            '''
 
-            fig = make_subplots(rows = N, cols = 1, vertical_spacing = 0.02)
+            #for n in range(N):
 
-            fig.update_layout(width = width, height = height)
+            outlier = outliers[n]
+            i       = outlier[5]
+            j       = outlier[6]
+            i_      = i - buffer
+            j_      = j + buffer
+            o_      = opens[i_:j_]
+            h_      = highs[i_:j_]
+            l_      = lows[i_:j_]
+            c_      = closes[i_:j_]
 
-            for n in range(N):
-
-                outlier = outliers[n]
-                i       = outlier[5]
-                j       = outlier[6]
-                i_      = i - buffer
-                j_      = j + buffer
-                o_      = opens[i_:j_]
-                h_      = highs[i_:j_]
-                l_      = lows[i_:j_]
-                c_      = closes[i_:j_]
-
-                fig.add_trace(
-                    go.Candlestick(
-                        {
-                            "open":     o_,
-                            "high":     h_,
-                            "low":      l_,
-                            "close":    c_,
-                            "name":     f"trade {outlier[0]}, diff {outlier[-1]:0.2f}"
-                        }
-                    ),
-                    row = n + 1,
-                    col = 1
+            fig.add_trace(
+                go.Candlestick(
+                    {
+                        "open":     o_,
+                        "high":     h_,
+                        "low":      l_,
+                        "close":    c_,
+                        "name":     f"trade {outlier[0]}, diff {outlier[-1]:0.2f}"
+                    }
                 )
+                #row = n + 1,
+                #col = 1
+            )
 
-                anns = [ 
-                        ( outlier[1], "in", buffer ),
-                        ( outlier[2], "in", j - i + buffer ),
-                        ( outlier[3], "out", buffer ),
-                        ( outlier[4], "out", j - i + buffer )
-                    ]
+            anns = [ 
+                    ( outlier[1], "in", buffer ),
+                    ( outlier[2], "in", j - i + buffer ),
+                    ( outlier[3], "out", buffer ),
+                    ( outlier[4], "out", j - i + buffer )
+                ]
 
-                for ann in anns:
+            for ann in anns:
 
-                    fig.add_annotation(
-                        x       = ann[2],
-                        y       = ann[0],
-                        text    = f"{ann[0]:0.2f} {ann[1]}",
-                        row     = n + 1,
-                        col     = 1
-                    )
+                fig.add_annotation(
+                    x       = ann[2],
+                    y       = ann[0],
+                    text    = f"{ann[0]:0.2f} {ann[1]}"
+                    #row     = n + 1,
+                    #col     = 1
+                )
 
             fig.update_layout(xaxis_rangeslider_visible = False)
             fig.show()
