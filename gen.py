@@ -52,6 +52,7 @@ if __name__ == "__main__":
             qty     = row[in_row.qty]
             px      = sym_data[symbol]["close"]
             in_ts   = row[in_row.ts]
+            
 
             if in_ts < ts[0] or in_ts > ts[-1]:
 
