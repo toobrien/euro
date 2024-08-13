@@ -55,33 +55,32 @@ def get_sc_df(
     out_tz: str
 ) -> pl.DataFrame:
 
-    sc_offset   = datetime.now(timezone(SC_TZ)).strftime("%z")
-    df          = pl.read_csv(
-                    join(SC_PATH, f"{symbol}.scid_BarData.txt"),
-                    new_columns         = [ "date", "time", "open", "high", "low", "close" ],
-                    schema_overrides    = {
-                                            "Date":     str,
-                                            " Time":    str,
-                                            " Open":    pl.Float32,
-                                            " High":    pl.Float32,
-                                            " Low":     pl.Float32,
-                                            " Last":    pl.Float32,
-                                        }
-                ).with_columns(
-                    (
-                        pl.col("date") + pl.col("time")
-                    ).str.strptime(
-                        pl.Datetime, "%Y/%m/%d %H:%M:%S"
-                    ).dt.replace_time_zone(
-                        SC_TZ
-                    ).dt.convert_time_zone(
-                        out_tz
-                    ).dt.strftime(
-                        TS_FMT
-                    ).alias(
-                        "ts"
-                    )
-                )
+    df  = pl.read_csv(
+            join(SC_PATH, f"{symbol}.scid_BarData.txt"),
+            new_columns         = [ "date", "time", "open", "high", "low", "close" ],
+            schema_overrides    = {
+                                    "Date":     str,
+                                    " Time":    str,
+                                    " Open":    pl.Float32,
+                                    " High":    pl.Float32,
+                                    " Low":     pl.Float32,
+                                    " Last":    pl.Float32,
+                                }
+        ).with_columns(
+            (
+                pl.col("date") + pl.col("time")
+            ).str.strptime(
+                pl.Datetime, "%Y/%m/%d %H:%M:%S"
+            ).dt.replace_time_zone(
+                SC_TZ
+            ).dt.convert_time_zone(
+                out_tz
+            ).dt.strftime(
+                TS_FMT
+            ).alias(
+                "ts"
+            )
+        )
     
     return df
 

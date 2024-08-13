@@ -16,24 +16,20 @@ NT_DT_FMT = "%m/%d/%Y %I:%M:%S %p"
 
 
 def parse(
-    in_fn:      str,
-    tz:         str,
-    src:        str
+    in_fn:              str,
+    tz:                 str,
+    src:                str,
+    return_sym_data:    bool = True
 ):
     
-    trades      = pl.read_csv(in_fn)
-    trades      = trades.with_columns(
-                    [
-                        pl.col("Entry time").str.strptime(pl.Datetime, NT_DT_FMT).dt.strftime(TS_FMT).alias("Entry time"),
-                        pl.col("Exit time").str.strptime(pl.Datetime, NT_DT_FMT).dt.strftime(TS_FMT).alias("Exit time")
-                    ]
-                )
-    input       = []
-    symbols     = set([ sym.split()[0] for sym in trades["Instrument"] ])
-    start       = trades["Entry time"][0].split("T")[0]
-    end         = trades["Exit time"][-1].split("T")[0]
-    end         = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
-    sym_data    = get_sym_data(symbols, start, end, tz, src)
+    input   = []
+    trades  = pl.read_csv(in_fn)
+    trades  = trades.with_columns(
+                [
+                    pl.col("Entry time").str.strptime(pl.Datetime, NT_DT_FMT).dt.strftime(TS_FMT).alias("Entry time"),
+                    pl.col("Exit time").str.strptime(pl.Datetime, NT_DT_FMT).dt.strftime(TS_FMT).alias("Exit time")
+                ]
+            )
 
     for i in range(trades.height):
 
@@ -55,4 +51,16 @@ def parse(
         input.append(( instrument, entry_time, qty, entry_price ))
         input.append(( instrument, exit_time, qty * -1, exit_price ))
 
-    return sym_data, input
+    if return_sym_data:
+
+        symbols     = set([ sym.split()[0] for sym in trades["Instrument"] ])
+        start       = trades["Entry time"][0].split("T")[0]
+        end         = trades["Exit time"][-1].split("T")[0]
+        end         = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+        sym_data    = get_sym_data(symbols, start, end, tz, src)
+    
+        return sym_data, input
+
+    else:
+
+        return input

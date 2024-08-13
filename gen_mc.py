@@ -4,10 +4,10 @@ from    parsers import  ninjatrader, tradovate, thinkorswim
 from    polars  import  Config, DataFrame
 from    sys     import  argv
 from    time    import  time
-from    util    import  in_row, out_row
+from    util    import  in_row
 
 
-# python gen.py euro_in sc Europe/Berlin tradovate 1
+# python gen_mc.py euro_in sc Europe/Berlin tradovate 1
 
 
 PARSERS = { 
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     tz              = argv[3]
     parser          = PARSERS[argv[4]]
     debug           = int(argv[5])
-    sym_data, input = parser.parse(in_fn, tz, src)
+    sym_data, input = parser.parse(in_fn, tz, src, 1)
     mask            = []
 
     if input:

@@ -1,3 +1,4 @@
+from    config      import  FUT_DEFS
 from    datetime    import  datetime, timedelta
 import  polars      as      pl
 from    sys         import  path
@@ -12,24 +13,25 @@ pl.Config.set_tbl_cols(-1)
 
 
 def parse(
-    in_fn:      str,
-    tz:         str,
-    src:        str
+    in_fn:              str,
+    tz:                 str,
+    src:                str,
+    return_sym_data:    True
 ):
 
-    df = pl.read_csv(
-            in_fn,
-            quote_char = '"',
-            infer_schema_length = 0
-        ).select(
+    input   = []
+    df      = pl.read_csv(
+                in_fn,
+                quote_char = '"',
+                infer_schema_length = 0
+            ).select(
             [ "DATE", "TIME", "TYPE", "DESCRIPTION" ]
-        ).filter(
-            pl.col("TYPE") == "TRD"
-        )
-
+            ).filter(
+                pl.col("TYPE") == "TRD"
+            )
+    symbols = []
     dts     = []
     qtys    = []
-    symbols = []
     prices  = []
     
     for row in df.iter_rows():
@@ -52,6 +54,11 @@ def parse(
                 # future
 
                 symbol = symbol.split(":")[0][1:-3]
+
+                if FUT_DEFS[symbol]["alias"]:
+
+                    qty    = qty * FUT_DEFS[symbol]["scale"]
+                    symbol = FUT_DEFS[symbol]["alias"]
             
             elif len(symbol) > 6:
 
@@ -63,12 +70,16 @@ def parse(
 
         if err:
 
+            '''
+            # debug
+             
             print(f"skipping: {dt},{desc}")
 
             dts.append(None)
             qtys.append(None)
             symbols.append(None)
             prices.append(None)
+            '''
 
             err = False
         
@@ -78,6 +89,9 @@ def parse(
             qtys.append(qty)
             symbols.append(symbol)
             prices.append(price)
+
+    '''
+    # debug
 
     df = df.with_columns(
             [
@@ -102,5 +116,27 @@ def parse(
     for symbol in sorted(df["SYMBOL"].unique()):
 
         print(symbol)
+    '''
 
-    exit()
+    input = [ 
+                (
+                    symbols[i],
+                    dts[i],
+                    qtys[i],
+                    prices[i]
+                )
+                for i in range(len(dts))
+            ]
+
+    if return_sym_data:
+
+        start       = dts[0].split("T")[0]
+        end         = dts[-1].split("T")[0]
+        end         = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+        sym_data    = get_sym_data(symbols, start, end, tz, src)
+
+        return sym_data, input
+    
+    else:
+
+        return input

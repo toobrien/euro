@@ -30,9 +30,10 @@ TV_DT_FMT = "%m/%d/%Y %H:%M:%S"
 
 
 def parse(
-    in_fn:      str,
-    tz:         str,
-    src:        str
+    in_fn:              str,
+    tz:                 str,
+    src:                str,
+    return_sym_data:    bool = True
 ):
 
     trades      = read_csv(in_fn)
@@ -43,15 +44,7 @@ def parse(
                     ]
                 )
     in_rows     = trades.rows()
-    dates       = sorted(
-                    [ row[trade_row.boughtTimestamp].split("T")[0] for row in in_rows ] + 
-                    [ row[trade_row.soldTimestamp].split("T")[0] for row in in_rows ]
-                )
-    start       = dates[0]
-    end         = (datetime.strptime(dates[-1], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
-    symbols     = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
     input       = []
-    sym_data    = get_sym_data(symbols, start, end, tz, src)
 
     for trade in in_rows:
 
@@ -72,4 +65,19 @@ def parse(
         input.append((symbol, in_buy_ts, in_qty, in_buy_px))
         input.append((symbol, in_sell_ts, -in_qty, in_sell_px))
 
-    return sym_data, input
+    if return_sym_data:
+
+        dates       = sorted(
+                        [ row[trade_row.boughtTimestamp].split("T")[0] for row in in_rows ] + 
+                        [ row[trade_row.soldTimestamp].split("T")[0] for row in in_rows ]
+                    )
+        start       = dates[0]
+        end         = (datetime.strptime(dates[-1], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+        symbols     = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
+        sym_data    = get_sym_data(symbols, start, end, tz, src)
+
+        return sym_data, input
+    
+    else:
+
+        return input
