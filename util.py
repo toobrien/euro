@@ -52,11 +52,15 @@ def get_dbn_df(
 
 def get_sc_df(
     symbol: str,
-    out_tz: str
+    out_tz: str,
+    daily:  bool = False
 ) -> pl.DataFrame:
+    
+
+    suffix = ".scid_BarData.txt" if not daily else ".dly_BarData.txt"
 
     df  = pl.read_csv(
-            join(SC_PATH, f"{symbol}.scid_BarData.txt"),
+            join(SC_PATH, f"{symbol}{suffix}"),
             new_columns         = [ "date", "time", "open", "high", "low", "close" ],
             schema_overrides    = {
                                     "Date":     str,
@@ -66,7 +70,24 @@ def get_sc_df(
                                     " Low":     pl.Float32,
                                     " Last":    pl.Float32,
                                 }
-        ).with_columns(
+        )
+    
+    if daily:
+
+        # replace null (midnight) times in SC with SETTLEMENT_TIME
+        # probably doesn't work with daylight savings, but not a big deal
+
+        settle_tz       = timezone("America/New_York")
+        local_tz        = timezone(SC_TZ)
+        settlement_dt   = datetime.strptime("16:00:00", "%H:%M:%S").replace(tzinfo = settle_tz)
+        settlement_dt   = settlement_dt.astimezone(local_tz)
+
+        # minute conversion seems broken for some reason, so hard code %M and %S
+
+        settlement_ts   = settlement_dt.strftime("%H:00:00")
+        df              = df.with_columns(pl.lit(f" {settlement_ts}").alias("time"))
+
+    df = df.with_columns(
             (
                 pl.col("date") + pl.col("time")
             ).str.strptime(
