@@ -1,4 +1,6 @@
+from    bisect  import  bisect_left
 from    os.path import  join
+from    numpy   import  array
 from    parsers import  ninjatrader, tradovate, thinkorswim
 import  polars  as      pl
 from    sys     import  argv
@@ -6,6 +8,8 @@ from    time    import  time
 from    util    import  get_sc_df, in_row
 from    typing  import  List
 
+
+DEBUG   = False
 PARSERS = { 
             "tradovate":    tradovate,
             "thinkorswim":  thinkorswim,
@@ -24,18 +28,76 @@ def get_daily(symbol: str, rows: List, tz: str):
 
     try:
 
-        df = get_sc_df(symbol, tz, True).drop(["date", "time"])
+        df = get_sc_df(symbol, tz, True).drop(
+                [ 
+                    "date", 
+                    "time", 
+                    "open",
+                    "high",
+                    "low",
+                    " OpenInterest", 
+                    " Volume"
+                ]
+            )
 
-        print(symbol, "\n")
-        print(df.tail())
+        trade_ts    = [ row[in_row.ts] for row in rows ]
+        trade_px    = [ row[in_row.price] for row in rows ]
+        trade_qty   = [ row[in_row.qty] for row in rows ]
+        trades      = list(zip(trade_ts, trade_px, trade_qty))
+        settles     = list(zip(df["ts"], df["close"], [ 0 for i in range(df.height) ]))
+        
+        start       = bisect_left(settles, rows[0][in_row.ts], key = lambda r: r[0]) - 1
+        end         = bisect_left(settles, rows[-1][in_row.ts], key = lambda r: r[0]) + 2
+        settles     = settles[start:end]
+        combined    = sorted(trades + settles, key = lambda r: r[0])
+        position    = array([ 0. for i in range(len(combined)) ])
+        pnl         = array([ 0. for i in range(len(combined)) ])
+
+        for i in range(len(combined)):
+
+            position[i:] += combined[i][2]
+
+        # correct error
+
+        position = array([ i if abs(i) > 1e-10 else 0 for i in position ])
+
+        for i in range(1, len(combined)):
+
+            cur_price   = combined[i][1]
+            prev_price  = combined[i - 1][1]
+            prev_pos    = position[i - 1]
+            pnl[i]      = (cur_price - prev_price) * prev_pos
+
+        if combined[0][2] != 0:
+
+            print(f"{symbol}: warning, trade prior to data start")
+
+        if combined[-1][2] != 0:
+
+            print(f"{symbol}: warning, unclosed position at data end")
+
+        if DEBUG:
+
+            print(symbol, "\n")
+            print(df.tail())
+
+            dbg_df = pl.DataFrame(
+                        {
+                            "ts":       [ row[0] for row in combined ],
+                            "price":    [ row[1] for row in combined ],
+                            "qty":      [ row[2] for row in combined ],
+                            "pos":      position,
+                            "pnl":      pnl
+                        }
+                    )
+            
+            print(dbg_df)
 
         pass
-    
+
     except FileNotFoundError:
 
         print(f"{symbol} daily bars not found")
-
-    pass
 
     return {}
 
