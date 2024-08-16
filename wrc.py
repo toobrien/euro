@@ -170,6 +170,27 @@ def bootstrap(returns: array):
     return p
 
 
+def mc_drawdown(returns: array):
+
+    samples   = [ 
+                    choice(returns, size = returns.shape[0], replace = True)
+                    for _ in range(N)
+                ]
+    drawdowns = sorted(
+                    [
+                        max(
+                            [ 
+                                abs(sample[i] - max(sample[0:i + 1]))
+                                for i in range(len(sample)) 
+                            ]
+                        )
+                        for sample in samples
+                    ]
+                )
+
+    return drawdowns
+
+
 if __name__ == "__main__":
 
     t0              = time()
@@ -231,25 +252,33 @@ if __name__ == "__main__":
             next_day        = dates[i + 1]
             pnls[next_day]  += pnls[cur_day]
 
-    mask        = nonzero(mask)
-    dates       = dates[mask]
-    pnl         =  [ sum(pnls[date]) for date in dates ]
-    cum_pnl     =  cumsum(pnl)
-    cum_pnl     += init_balance
-    returns     =  array([ log(cum_pnl[i] / cum_pnl[i - 1]) for i in range(1, len(cum_pnl)) ])
-    cum_ret     =  cumsum(returns)
-    dates       =  dates[1:]
+    # results
+
+    pnl             =  [ sum(pnls[date]) for date in dates ]
+    cum_pnl         =  cumsum(pnl)
+    cum_pnl         += init_balance
+    returns         =  array([ log(cum_pnl[i] / cum_pnl[i - 1]) for i in range(1, len(cum_pnl)) ])
+    cum_ret         =  cumsum(returns)
+    mu              =  mean(returns)
+    sigma           =  std(returns)
+    sharpe          =  mu / sigma * sqrt(252)
+    p_val           =  bootstrap(returns)
+    mask            =  nonzero(mask)
+    dates           =  dates[mask]
+    drawdowns       =  [ cum_ret[i] - max(cum_ret[0:i + 1]) for i in range(len(cum_ret)) ]
+    h_drawdowns     =  mc_drawdown(returns)
+    p_95_h_dd       =  h_drawdowns[int(N * 0.95)]
+    max_dd          =  min(drawdowns)
+    mean_dd         =  mean(drawdowns)
+    mar_ratio       =  (mu * 252) / abs(max_dd)
+    gross_profit    =  sum([ i for i in pnl if i > 0 ])
+    gross_loss      =  sum([ abs(i) for i in pnl if i < 0 ])
+    profit_factor   =  gross_profit / gross_loss
+    dates           =  dates[1:]
 
     if DEBUG == 2:
 
         print(f"{'TOTAL':20}{sum(pnl):>10.2f}\n")
-
-    # results
-
-    mu      = mean(returns)
-    sigma   = std(returns)
-    sharpe  = mu / sigma * sqrt(252)
-    p_val   = bootstrap(returns)
 
     print("\ntotals")
     print("\n-----\n")
@@ -258,28 +287,35 @@ if __name__ == "__main__":
     print(f"{'pnl':20}{cum_pnl[-1] - init_balance:>10.2f}")
     print(f"{'return':20}{(cum_pnl[-1] / init_balance - 1) * 100:>10.2f}%")
     print("\n-----\n")
-    print("summary statistics (trader)\n")
+    print(f"{'summary statistics':20}{'trader':>10}\n")
     print(f"{'daily return:':20}{mu * 100:>10.2f}%")
     print(f"{'daily stdev:':20}{sigma * 100:>10.2f}%")
     print(f"{'annualized return:':20}{mu * 252 * 100:>10.2f}%")
     print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>10.2f}%")
-    print(f"{'sharpe:':20}{sharpe:>10.2f}")
-    print(f"{'wrc p-value':20}{p_val:>10.2f}")
+    print(f"{'max drawdown:':20}{max_dd * 100:>10.2f}%")
+    print(f"{'avg. drawdown:':20}{mean_dd * 100:>10.2f}%")
+    print(f"{'mc drawdown, p95:':20}{-p_95_h_dd * 100:>10.2f}%")
+    print(f"{'MAR ratio:':20}{mar_ratio:>10.2f}")
+    print(f"{'profit factor:':20}{profit_factor:>10.2f}")
+    print(f"{'sharpe ratio:':20}{sharpe:>10.2f}")
+    print(f"{'wrc p-value:':20}{p_val:>10.2f}")
     print("\n")
 
-    fig = go.Figure()
+    if DEBUG == 4:
 
-    fig.add_trace(
-        go.Scatter(
-            {
-                "x":    dates,
-                "y":    cum_ret,
-                "name": "returns"
-            }
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                {
+                    "x":    dates,
+                    "y":    cum_ret,
+                    "name": "returns"
+                }
+            )
         )
-    )
 
-    fig.show()
+        fig.show()
 
     print(f"{time() - t0:0.1f}s")
 
