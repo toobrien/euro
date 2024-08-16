@@ -149,7 +149,7 @@ def bootstrap(returns: array):
                                 replace = True
                             )
                         ) 
-                        for i in range(N) 
+                        for _ in range(N) 
                     ])
     i               = bisect_left(sampling_dist, mu) 
     p               = 1 - i / N
@@ -157,7 +157,7 @@ def bootstrap(returns: array):
     if DEBUG == 4:
 
         sampling_mu = mean(sampling_dist)
-        
+
         print(f"{'sampling_mu':20}{sampling_mu:>10.10f}")
 
         fig = go.Figure()
