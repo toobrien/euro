@@ -1,5 +1,5 @@
 from    datetime    import  datetime
-from    config      import  DBN_PATH, FUT_DEFS, SC_PATH, SC_TZ, TS_FMT
+from    config      import  DBN_PATH, FUT_DEFS, SC_PATH, SC_TZ, SPX_PATH, TS_FMT
 from    enum        import  IntEnum
 from    numpy       import  array
 from    os.path     import  join
@@ -163,3 +163,15 @@ def get_sym_data(
                         }
 
     return sym_data
+
+
+def get_spx(start, end):
+
+    df = pl.read_csv(
+            SPX_PATH
+        ).filter(
+            (pl.col("datetime") >= start) &
+            (pl.col("datetime") <= end)
+        )
+
+    return df

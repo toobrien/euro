@@ -4,6 +4,7 @@ from os.path import join
 TS_FMT              = "%Y-%m-%dT%H:%M:%S"
 DBN_PATH            = join("..", "databento", "csvs" )
 SC_PATH             = join("/", "Volumes", "[C] Windows 11", "SierraChart", "Data")
+SPX_PATH            = join("..", "index_data", "SPX", "SPX_daily.csv")
 SC_TZ               = "America/Los_Angeles"
 STOCK_ENABLED       = False
 STOCK_MULTIPLIER    = 1.

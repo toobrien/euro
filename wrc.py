@@ -3,14 +3,14 @@ from    config                  import  FUT_DEFS
 from    datetime                import  datetime
 from    os.path                 import  join
 from    math                    import  log, sqrt
-from    numpy                   import  array, cumsum, mean, nonzero, std
+from    numpy                   import  array, cumsum, diff, mean, nonzero, std
 from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, thinkorswim
 import  plotly.graph_objects    as      go
 import  polars                  as      pl
 from    sys                     import  argv
 from    time                    import  time
-from    util                    import  get_sc_df, in_row
+from    util                    import  get_sc_df, get_spx, in_row
 from    typing                  import  List
 
 
@@ -254,27 +254,45 @@ if __name__ == "__main__":
 
     # results
 
-    pnl             =  [ sum(pnls[date]) for date in dates ]
-    cum_pnl         =  cumsum(pnl)
-    cum_pnl         += init_balance
-    returns         =  array([ log(cum_pnl[i] / cum_pnl[i - 1]) for i in range(1, len(cum_pnl)) ])
-    cum_ret         =  cumsum(returns)
-    mu              =  mean(returns)
-    sigma           =  std(returns)
-    sharpe          =  mu / sigma * sqrt(252)
-    p_val           =  bootstrap(returns)
-    mask            =  nonzero(mask)
-    dates           =  dates[mask]
-    drawdowns       =  [ cum_ret[i] - max(cum_ret[0:i + 1]) for i in range(len(cum_ret)) ]
-    h_drawdowns     =  mc_drawdown(returns)
-    p_95_h_dd       =  h_drawdowns[int(N * 0.95)]
-    max_dd          =  min(drawdowns)
-    mean_dd         =  mean(drawdowns)
-    mar_ratio       =  (mu * 252) / abs(max_dd)
-    gross_profit    =  sum([ i for i in pnl if i > 0 ])
-    gross_loss      =  sum([ abs(i) for i in pnl if i < 0 ])
-    profit_factor   =  gross_profit / gross_loss
-    dates           =  dates[1:]
+    pnl                 =  [ sum(pnls[date]) for date in dates ]
+    cum_pnl             =  cumsum(pnl)
+    cum_pnl             += init_balance
+    returns             =  array([ log(cum_pnl[i] / cum_pnl[i - 1]) for i in range(1, len(cum_pnl)) ])
+    cum_ret             =  cumsum(returns)
+    mu                  =  mean(returns)
+    sigma               =  std(returns)
+    sharpe              =  mu / sigma * sqrt(252)
+    p_val               =  bootstrap(returns)
+    mask                =  nonzero(mask)
+    dates               =  dates[mask]
+    drawdowns           =  [ cum_ret[i] - max(cum_ret[0:i + 1]) for i in range(len(cum_ret)) ]
+    h_drawdowns         =  mc_drawdown(returns)
+    p_95_h_dd           =  h_drawdowns[int(N * 0.95)]
+    max_dd              =  min(drawdowns)
+    mean_dd             =  mean(drawdowns)
+    mar_ratio           =  (mu * 252) / abs(max_dd)
+    gross_profit        =  sum([ i for i in pnl if i > 0 ])
+    gross_loss          =  sum([ abs(i) for i in pnl if i < 0 ])
+    profit_factor       =  gross_profit / gross_loss
+    dates               =  dates[1:]
+    SPX                 =  get_spx(dates[0], dates[-1])
+    spx_dates           =  SPX["datetime"][1:]
+    spx_close           =  SPX["close"]
+    spx_pnl             =  diff(spx_close)
+    spx_ret             =  [ log(spx_close[i] / spx_close[i - 1]) for i in range(1, len(spx_close)) ]
+    spx_cum_ret         =  cumsum(spx_ret)
+    spx_mu              =  mean(spx_ret)
+    spx_sigma           =  std(spx_ret)
+    spx_dd              =  [ spx_cum_ret[i] - max(spx_cum_ret[0:i + 1]) for i in range(len(spx_cum_ret)) ]
+    spx_max_dd          =  min(spx_dd)
+    spx_mean_dd         =  mean(spx_dd)
+    spx_mar_ratio       =  (spx_mu * 252) / abs(spx_max_dd)
+    spx_gross_profit    =  sum([ i for i in spx_pnl if i > 0 ])
+    spx_gross_loss      =  sum([ abs(i) for i in spx_pnl if i < 0 ])
+    spx_profit_factor   =  spx_gross_profit / spx_gross_loss
+    spx_sharpe          =  spx_mu / spx_sigma * sqrt(252)
+
+    pass
 
     if DEBUG == 2:
 
@@ -287,17 +305,17 @@ if __name__ == "__main__":
     print(f"{'pnl':20}{cum_pnl[-1] - init_balance:>10.2f}")
     print(f"{'return':20}{(cum_pnl[-1] / init_balance - 1) * 100:>10.2f}%")
     print("\n-----\n")
-    print(f"{'summary statistics':20}{'trader':>10}\n")
-    print(f"{'daily return:':20}{mu * 100:>10.2f}%")
-    print(f"{'daily stdev:':20}{sigma * 100:>10.2f}%")
-    print(f"{'annualized return:':20}{mu * 252 * 100:>10.2f}%")
-    print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>10.2f}%")
-    print(f"{'max drawdown:':20}{max_dd * 100:>10.2f}%")
-    print(f"{'avg. drawdown:':20}{mean_dd * 100:>10.2f}%")
+    print(f"{'summary statistics':20}{'trader':>10}{'spx':>10}\n")
+    print(f"{'daily return:':20}{mu * 100:>10.2f}%{spx_mu * 100:>10.2f}%")
+    print(f"{'daily stdev:':20}{sigma * 100:>10.2f}%{spx_sigma * 100:>10.2f}%")
+    print(f"{'annualized return:':20}{mu * 252 * 100:>10.2f}%{spx_mu * 252 * 100:>10.2f}%")
+    print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>10.2f}%{spx_sigma * sqrt(252) * 100:>10.2f}%")
+    print(f"{'max drawdown:':20}{max_dd * 100:>10.2f}%{spx_max_dd * 100:>10.2f}%")
+    print(f"{'avg. drawdown:':20}{mean_dd * 100:>10.2f}%{spx_mean_dd * 100:>10.2f}%")
     print(f"{'mc drawdown, p95:':20}{-p_95_h_dd * 100:>10.2f}%")
-    print(f"{'MAR ratio:':20}{mar_ratio:>10.2f}")
-    print(f"{'profit factor:':20}{profit_factor:>10.2f}")
-    print(f"{'sharpe ratio:':20}{sharpe:>10.2f}")
+    print(f"{'MAR ratio:':20}{mar_ratio:>10.2f}{spx_mar_ratio:>10.2f}")
+    print(f"{'profit factor:':20}{profit_factor:>10.2f}{spx_profit_factor:>10.2f}")
+    print(f"{'sharpe ratio:':20}{sharpe:>10.2f}{spx_sharpe:>10.2f}")
     print(f"{'wrc p-value:':20}{p_val:>10.2f}")
     print("\n")
 
@@ -305,15 +323,23 @@ if __name__ == "__main__":
 
         fig = go.Figure()
 
-        fig.add_trace(
-            go.Scatter(
-                {
-                    "x":    dates,
-                    "y":    cum_ret,
-                    "name": "returns"
-                }
+        traces = [
+            ( "trader", dates, cum_ret, "#0000FF" ),
+            ( "spx", spx_dates, spx_cum_ret, "#FF0000" )
+        ]
+
+        for trace in traces:
+        
+            fig.add_trace(
+                go.Scatter(
+                    {
+                        "x":        trace[1],
+                        "y":        trace[2],
+                        "name":     f"{trace[0]} returns",
+                        "marker":   { "color": trace[3] }
+                    }
+                )
             )
-        )
 
         fig.show()
 
