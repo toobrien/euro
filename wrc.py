@@ -4,6 +4,7 @@ from    datetime                import  datetime
 from    os.path                 import  join
 from    math                    import  log, sqrt
 from    numpy                   import  array, cumsum, mean, nonzero, std
+from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, thinkorswim
 import  plotly.graph_objects    as      go
 import  polars                  as      pl
@@ -13,6 +14,7 @@ from    util                    import  get_sc_df, in_row
 from    typing                  import  List
 
 
+DEBUG   = 0
 N       = 10_000
 PARSERS = { 
             "tradovate":    tradovate,
@@ -31,8 +33,7 @@ pl.Config.set_tbl_cols(-1)
 def get_daily(
     symbol: str,
     rows:   List, 
-    tz:     str,
-    debug:  bool
+    tz:     str
 ):
 
     res         = pl.DataFrame()
@@ -117,13 +118,13 @@ def get_daily(
                 }
         )
 
-    if debug == 1:
+    if DEBUG == 1:
         
         print(symbol, "\n")
         print(df.tail())
         print(res)
 
-    if debug == 2:
+    if DEBUG == 2:
 
         print(f"{symbol:20}{sum(pnl):>10.2f}")
 
@@ -136,9 +137,37 @@ def get_daily(
     return res
 
 
-def bootstrap(returns: List[float]):
+def bootstrap(returns: array):
 
-    pass
+    mu              = mean(returns)
+    returns         = returns - mu
+    sampling_dist   = sorted([ 
+                        mean(
+                                choice(
+                                returns, 
+                                size    = returns.shape[0], 
+                                replace = True
+                            )
+                        ) 
+                        for i in range(N) 
+                    ])
+    i               = bisect_left(sampling_dist, mu) 
+    p               = 1 - i / N
+
+    if DEBUG == 4:
+
+        sampling_mu = mean(sampling_dist)
+        
+        print(f"{'sampling_mu':20}{sampling_mu:>10.10f}")
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Histogram(x = sampling_dist, name = "sampling distribution"))
+        fig.add_vline(x = mu, line_color = "#FF00FF")
+
+        fig.show()
+
+    return p
 
 
 if __name__ == "__main__":
@@ -148,7 +177,7 @@ if __name__ == "__main__":
     tz              = argv[2]
     parser          = PARSERS[argv[3]]
     init_balance    = float(argv[4])
-    debug           = int(argv[5])
+    DEBUG           = int(argv[5])
     in_rows         = parser.parse(in_fn, tz, None, 0)
     symbols         = sorted(set([ row[in_row.symbol] for row in in_rows ]))
     pnls            = {}
@@ -156,9 +185,9 @@ if __name__ == "__main__":
     for symbol in symbols:
 
         sym_rows = [ row for row in in_rows if row[in_row.symbol] == symbol ]
-        res      = get_daily(symbol, sym_rows, tz, debug)
+        res      = get_daily(symbol, sym_rows, tz)
 
-        if debug == 3:
+        if DEBUG == 3:
             
             in_rows_df = pl.DataFrame(
                 {
@@ -207,20 +236,20 @@ if __name__ == "__main__":
     pnl         =  [ sum(pnls[date]) for date in dates ]
     cum_pnl     =  cumsum(pnl)
     cum_pnl     += init_balance
-    returns     =  [ log(cum_pnl[i] / cum_pnl[i - 1]) for i in range(1, len(cum_pnl)) ]
+    returns     =  array([ log(cum_pnl[i] / cum_pnl[i - 1]) for i in range(1, len(cum_pnl)) ])
     cum_ret     =  cumsum(returns)
     dates       =  dates[1:]
 
-    if debug == 2:
+    if DEBUG == 2:
 
         print(f"{'TOTAL':20}{sum(pnl):>10.2f}\n")
-
 
     # results
 
     mu      = mean(returns)
     sigma   = std(returns)
     sharpe  = mu / sigma * sqrt(252)
+    p_val   = bootstrap(returns)
 
     print("\ntotals")
     print("\n-----\n")
@@ -235,6 +264,7 @@ if __name__ == "__main__":
     print(f"{'annualized return:':20}{mu * 252 * 100:>10.2f}%")
     print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>10.2f}%")
     print(f"{'sharpe:':20}{sharpe:>10.2f}")
+    print(f"{'wrc p-value':20}{p_val:>10.2f}")
     print("\n")
 
     fig = go.Figure()
