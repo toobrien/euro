@@ -1,8 +1,9 @@
 from    bisect                  import  bisect_left
 from    config                  import  FUT_DEFS
+from    datetime                import  datetime
 from    os.path                 import  join
 from    math                    import  log, sqrt
-from    numpy                   import  array, cumsum, mean, std
+from    numpy                   import  array, cumsum, mean, nonzero, std
 from    parsers                 import  ninjatrader, tradovate, thinkorswim
 import  plotly.graph_objects    as      go
 import  polars                  as      pl
@@ -12,6 +13,7 @@ from    util                    import  get_sc_df, in_row
 from    typing                  import  List
 
 
+N       = 10_000
 PARSERS = { 
             "tradovate":    tradovate,
             "thinkorswim":  thinkorswim,
@@ -123,7 +125,7 @@ def get_daily(
 
     if debug == 2:
 
-        print(f"{symbol:10}{sum(pnl):>10.2f}")
+        print(f"{symbol:20}{sum(pnl):>10.2f}")
 
     res = res.group_by("date", maintain_order = True).agg(
                     [ 
@@ -132,6 +134,11 @@ def get_daily(
                 )
 
     return res
+
+
+def bootstrap(returns: List[float]):
+
+    pass
 
 
 if __name__ == "__main__":
@@ -175,7 +182,28 @@ if __name__ == "__main__":
 
             pnls[date].append(pnl)
 
-    dates       =  sorted(list(set([ row[in_row.ts].split("T")[0] for row in in_rows ])))
+    dates       =  array(sorted(list(set([ row[in_row.ts].split("T")[0] for row in in_rows ]))))
+    mask        =  array([ 1 for i in range(len(dates)) ])
+
+    # remove saturdays and put move sunday pnls into next weekday
+
+    for i in range(len(dates) - 1):
+
+        cur_day = dates[i]
+        dt      = datetime.strptime(dates[i], "%Y-%m-%d")
+
+        if dt.weekday() == 5:
+
+            mask[i] = 0
+        
+        if dt.weekday() == 6:
+
+            mask[i]         =  0
+            next_day        = dates[i + 1]
+            pnls[next_day]  += pnls[cur_day]
+
+    mask        = nonzero(mask)
+    dates       = dates[mask]
     pnl         =  [ sum(pnls[date]) for date in dates ]
     cum_pnl     =  cumsum(pnl)
     cum_pnl     += init_balance
@@ -185,31 +213,43 @@ if __name__ == "__main__":
 
     if debug == 2:
 
-        print(f"{'TOTAL':10}{sum(pnl):>10.2f}\n")
+        print(f"{'TOTAL':20}{sum(pnl):>10.2f}\n")
 
-        fig = go.Figure()
 
-        fig.add_trace(
-            go.Scatter(
-                {
-                    "x":    dates,
-                    "y":    cum_ret,
-                    "name": "returns"
-                }
-            )
+    # results
+
+    mu      = mean(returns)
+    sigma   = std(returns)
+    sharpe  = mu / sigma * sqrt(252)
+
+    print("\ntotals")
+    print("\n-----\n")
+    print(f"{'initial balance':20}{init_balance:>10.2f}")
+    print(f"{'ending balance':20}{cum_pnl[-1]:>10.2f}")
+    print(f"{'pnl':20}{cum_pnl[-1] - init_balance:>10.2f}")
+    print(f"{'return':20}{(cum_pnl[-1] / init_balance - 1) * 100:>10.2f}%")
+    print("\n-----\n")
+    print("summary statistics (trader)\n")
+    print(f"{'daily return:':20}{mu * 100:>10.2f}%")
+    print(f"{'daily stdev:':20}{sigma * 100:>10.2f}%")
+    print(f"{'annualized return:':20}{mu * 252 * 100:>10.2f}%")
+    print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>10.2f}%")
+    print(f"{'sharpe:':20}{sharpe:>10.2f}")
+    print("\n")
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            {
+                "x":    dates,
+                "y":    cum_ret,
+                "name": "returns"
+            }
         )
+    )
 
-        mu      = mean(returns)
-        sigma   = std(returns)
-        sharpe  = mu / sigma * 16
-
-        print(f"{'daily mu:':10}{mu:>10.4f}")
-        print(f"{'daily sig:':10}{sigma:>10.4f}")
-        print(f"{'ann. mu:':10}{mu * 252:>10.2f}")
-        print(f"{'ann. sig:':10}{sigma * 16:>10.2f}")
-        print(f"{'sharpe:':10}{sharpe:>10.2f}")
-
-        fig.show()
+    fig.show()
 
     print(f"{time() - t0:0.1f}s")
 
