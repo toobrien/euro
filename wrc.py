@@ -35,6 +35,7 @@ def get_daily(
 
     res         = pl.DataFrame()
     multiplier  = 1.
+    df          = None
 
     if symbol in FUT_DEFS:
 
@@ -53,78 +54,84 @@ def get_daily(
                     " Volume"
                 ]
             )
-
-        trade_ts    = [ row[in_row.ts] for row in rows ]
-        trade_px    = [ row[in_row.price] for row in rows ]
-        trade_qty   = [ row[in_row.qty] for row in rows ]
-        trades      = list(zip(trade_ts, trade_px, trade_qty))
-        settles     = list(zip(df["ts"], df["close"], [ 0 for i in range(df.height) ]))
-        
-        start       = bisect_left(settles, rows[0][in_row.ts], key = lambda r: r[0]) - 1
-        end         = bisect_left(settles, rows[-1][in_row.ts], key = lambda r: r[0]) + 1
-        settles     = settles[start:end]
-        combined    = sorted(trades + settles, key = lambda r: r[0])
-        dates       = [ row[0].split("T")[0] for row in combined ]
-        position    = array([ 0. for i in range(len(combined)) ])
-        pnl         = array([ 0. for i in range(len(combined)) ])
-
-        for i in range(len(combined)):
-
-            position[i:] += combined[i][2]
-
-        # correct error
-
-        position = array([ i if abs(i) > 1e-10 else 0 for i in position ])
-
-        for i in range(1, len(combined)):
-
-            cur_price   = combined[i][1]
-            prev_price  = combined[i - 1][1]
-            prev_pos    = position[i - 1]
-            pnl[i]      = (cur_price - prev_price) * prev_pos
-
-        # convert pnls to dollars
-
-        pnl *= multiplier
-
-        if combined[0][2] != 0:
-
-            print(f"{symbol}: warning, trade prior to data start")
-
-        if combined[-1][2] != 0:
-
-            print(f"{symbol}: warning, unclosed position at data end")
-
-        # extra cols for debug
-
-        res = pl.DataFrame(
-                    {
-                        "ts":       [ row[0] for row in combined ],
-                        "date":    [ date for date in dates ],
-                        "price":    [ row[1] for row in combined ],
-                        "qty":      [ row[2] for row in combined ],
-                        "pos":      position,
-                        "pnl":      pnl
-                    }
-            )
-        
-        if debug == 1:
-
-            print(symbol, "\n")
-            print(df.tail())
-            print(res)
-
-            pass
-
-        res = res.group_by("date", maintain_order = True).agg(
-                        [ 
-                            pl.col("pnl").sum().alias("pnl"),
-                        ]
-                    )
-
+    
     except FileNotFoundError:
 
-        print(f"{symbol} daily bars not found, skipping")
+        print(f"{symbol}: warning, daily bars not found")
+
+        df = pl.DataFrame({ "ts": [], "close": [] })
+
+    trade_ts    = [ row[in_row.ts] for row in rows ]
+    trade_px    = [ row[in_row.price] for row in rows ]
+    trade_qty   = [ row[in_row.qty] for row in rows ]
+    trades      = list(zip(trade_ts, trade_px, trade_qty))
+    settles     = list(zip(df["ts"], df["close"], [ 0 for i in range(df.height) ]))
+    
+    start       = bisect_left(settles, rows[0][in_row.ts], key = lambda r: r[0]) - 1
+    end         = bisect_left(settles, rows[-1][in_row.ts], key = lambda r: r[0]) + 1
+    settles     = settles[start:end]
+    combined    = sorted(trades + settles, key = lambda r: r[0])
+    dates       = [ row[0].split("T")[0] for row in combined ]
+    position    = array([ 0. for i in range(len(combined)) ])
+    pnl         = array([ 0. for i in range(len(combined)) ])
+
+    for i in range(len(combined)):
+
+        position[i:] += combined[i][2]
+
+    # correct error
+
+    position = array([ i if abs(i) > 1e-10 else 0 for i in position ])
+
+    for i in range(1, len(combined)):
+
+        cur_price   = combined[i][1]
+        prev_price  = combined[i - 1][1]
+        prev_pos    = position[i - 1]
+        pnl[i]      = (cur_price - prev_price) * prev_pos
+
+    # convert pnls to dollars
+
+    pnl *= multiplier
+
+    if combined[0][2] != 0:
+
+        print(f"{symbol}: warning, trade prior to data start")
+
+    if combined[-1][2] != 0:
+
+        print(f"{symbol}: warning, unclosed position at data end")
+
+    # extra cols for debug
+
+    res = pl.DataFrame(
+                {
+                    "ts":       [ row[0] for row in combined ],
+                    "date":    [ date for date in dates ],
+                    "price":    [ row[1] for row in combined ],
+                    "qty":      [ row[2] for row in combined ],
+                    "pos":      position,
+                    "pnl":      pnl
+                }
+        )
+
+    if debug == 1:
+
+        print(symbol, "\n")
+        print(df.tail())
+        print(res)
+
+        pass
+
+    if debug == 2:
+
+        print(f"{symbol:10}{sum(pnl):>10.2f}")
+
+    res = res.group_by("date", maintain_order = True).agg(
+                    [ 
+                        pl.col("pnl").sum().alias("pnl"),
+                    ]
+                )
 
     return res
 
@@ -166,6 +173,8 @@ if __name__ == "__main__":
     dates       =  dates[1:]
 
     if debug == 2:
+
+        print(f"{'TOTAL':10}{sum(pnl):>10.2f}\n")
 
         fig = go.Figure()
 
