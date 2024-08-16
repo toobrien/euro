@@ -116,12 +116,10 @@ def get_daily(
         )
 
     if debug == 1:
-
+        
         print(symbol, "\n")
         print(df.tail())
         print(res)
-
-        pass
 
     if debug == 2:
 
@@ -145,13 +143,26 @@ if __name__ == "__main__":
     init_balance    = float(argv[4])
     debug           = int(argv[5])
     in_rows         = parser.parse(in_fn, tz, None, 0)
-    symbols         = set([ row[in_row.symbol] for row in in_rows ])
+    symbols         = sorted(set([ row[in_row.symbol] for row in in_rows ]))
     pnls            = {}
 
     for symbol in symbols:
 
         sym_rows = [ row for row in in_rows if row[in_row.symbol] == symbol ]
         res      = get_daily(symbol, sym_rows, tz, debug)
+
+        if debug == 3:
+            
+            in_rows_df = pl.DataFrame(
+                {
+                    "symbol":   [ row[in_row.symbol] for row in sym_rows ],
+                    "ts":       [ row[in_row.ts] for row in sym_rows ],
+                    "qty":      [ row[in_row.qty] for row in sym_rows ],
+                    "price":    [ row[in_row.price] for row in sym_rows ]
+                }
+            )
+
+            print(in_rows_df)
 
         for row in res.iter_rows():
 

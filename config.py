@@ -15,6 +15,7 @@ FUT_DEFS            = {
                         "CL":   { "multiplier": 1_000.,     "enabled": True,   "alias": None,  "scale": 1.0     },
                         "NG":   { "multiplier": 10_000.,    "enabled": True,   "alias": None,  "scale": 1.0     },
                         "GC":   { "multiplier": 100.,       "enabled": True,   "alias": None,  "scale": 1.0     },
+                        "SI":   { "multiplier": 5000,       "enabled": True,   "alias": None,  "scale": 1.0     },
                         "BTC":  { "multiplier": 5.0,        "enabled": True,   "alias": None,  "scale": 1.0     },
                         "MES":  { "multiplier": 5.,         "enabled": True,   "alias": "ES",  "scale": 0.1     },
                         "MNQ":  { "multiplier": 2.,         "enabled": True,   "alias": "NQ",  "scale": 0.1     },
@@ -22,5 +23,6 @@ FUT_DEFS            = {
                         "MYM":  { "multiplier": 0.50,       "enabled": True,   "alias": "YM",  "scale": 0.1     },
                         "MCL":  { "multiplier": 1.,         "enabled": True,   "alias": "CL",  "scale": 0.1     },
                         "MGC":  { "multiplier": 10.,        "enabled": True,   "alias": "GC",  "scale": 0.1     },
+                        "SIL":  { "multiplier": 1000,       "enabled": True,   "alias": "SI",  "scale": 0.2     },
                         "MBT":  { "multiplier": 0.1,        "enabled": True,   "alias": "BTC", "scale": 0.02    }
                     }
