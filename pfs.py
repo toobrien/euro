@@ -1,9 +1,8 @@
 from    bisect                  import  bisect_left
 from    config                  import  FUT_DEFS
-from    datetime                import  datetime, timedelta
 from    os.path                 import  join
 from    math                    import  log, sqrt
-from    numpy                   import  arange, array, cumsum, diff, mean, nonzero, std
+from    numpy                   import  arange, array, cumsum, diff, mean, std
 from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, thinkorswim
 import  plotly.graph_objects    as      go
@@ -290,10 +289,16 @@ if __name__ == "__main__":
     b           = model.coef_[0]
     a           = model.intercept_
 
+    pass
+
     if DEBUG == 5:
 
         print(f"{'alpha':20}{a:0.4f}")
         print(f"{'beta':20}{b:0.4f}")
+
+        print(f"dates[0] = {dates[0]}")
+        print(f"ln({spx_close[1]:0.2f}, {spx_close[0]:0.2f}) = {log(spx_close[1] / spx_close[0]):0.4f}, ref = {spx_ret[0]:0.4f}")
+        print(f"ln({balance[1]:0.2f} / {balance[0]:0.2f})    = {log(balance[1] / balance[0]):0.4f}, ref = {returns[0]:0.4f}")
 
         fig = go.Figure()
 
@@ -322,8 +327,6 @@ if __name__ == "__main__":
 
         fig.show()
 
-    pass
-
     if DEBUG == 2:
 
         print(f"{'TOTAL':20}{sum(pnl):>10.2f}\n")
@@ -346,6 +349,8 @@ if __name__ == "__main__":
     print(f"{'MAR ratio:':20}{mar_ratio:>10.2f}{spx_mar_ratio:>10.2f}")
     print(f"{'profit factor:':20}{profit_factor:>10.2f}{spx_profit_factor:>10.2f}")
     print(f"{'sharpe ratio:':20}{sharpe:>10.2f}{spx_sharpe:>10.2f}")
+    print(f"{'alpha:':20}{a:>10.4f}")
+    print(f"{'beta:':20}{b:>10.4f}")
     print(f"{'wrc p-value:':20}{p_val:>10.2f}")
     print("\n")
 
