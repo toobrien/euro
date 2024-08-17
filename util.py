@@ -1,3 +1,4 @@
+from    bisect      import  bisect_left
 from    datetime    import  datetime
 from    config      import  DBN_PATH, FUT_DEFS, SC_PATH, SC_TZ, SPX_PATH, TS_FMT
 from    enum        import  IntEnum
@@ -165,13 +166,17 @@ def get_sym_data(
     return sym_data
 
 
-def get_spx(start, end):
+def get_spx(start_plus_one, end):
 
-    df = pl.read_csv(
-            SPX_PATH
-        ).filter(
-            (pl.col("datetime") >= start) &
-            (pl.col("datetime") <= end)
-        )
+    df      = pl.read_csv(SPX_PATH).filter((pl.col("datetime") <= end))
+    dates   = df["datetime"]
+    i       = bisect_left(dates, start_plus_one)
+    
+    if dates[i] >= start_plus_one:
+
+        i -= 1
+
+    start   = dates[i]
+    df      = df.filter(pl.col("datetime") >= start)
 
     return df

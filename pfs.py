@@ -1,13 +1,14 @@
 from    bisect                  import  bisect_left
 from    config                  import  FUT_DEFS
-from    datetime                import  datetime
+from    datetime                import  datetime, timedelta
 from    os.path                 import  join
 from    math                    import  log, sqrt
-from    numpy                   import  array, cumsum, diff, mean, nonzero, std
+from    numpy                   import  arange, array, cumsum, diff, mean, nonzero, std
 from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, thinkorswim
 import  plotly.graph_objects    as      go
 import  polars                  as      pl
+from    sklearn.linear_model    import  LinearRegression
 from    sys                     import  argv
 from    time                    import  time
 from    util                    import  get_sc_df, get_spx, in_row
@@ -27,7 +28,7 @@ pl.Config.set_tbl_rows(-1)
 pl.Config.set_tbl_cols(-1)
 
 
-# python wrc.py tydal_in America/New_York thinkorswim xxxxxx.xx 0
+# python pfs.py tydal_in America/New_York thinkorswim xxxxxx.xx 0
 
 
 def get_daily(
@@ -200,8 +201,18 @@ if __name__ == "__main__":
     init_balance    = float(argv[4])
     DEBUG           = int(argv[5])
     in_rows         = parser.parse(in_fn, tz, None, 0)
+    start           = in_rows[0][in_row.ts].split("T")[0]
+    end             = in_rows[-1][in_row.ts].split("T")[0]
     symbols         = sorted(set([ row[in_row.symbol] for row in in_rows ]))
-    pnls            = {}
+    SPX             = get_spx(start, end)
+
+    # get_spx() returns one additional day prior to the first trade date, 
+    # for calculating SPX return on the first day.
+    # dates are only used for labeling returns, so trim spx_dates[0]
+
+    dates           = list(SPX["datetime"])[1:]
+    spx_close       = SPX["close"]
+    pnls            = { date: [] for date in dates }
 
     for symbol in symbols:
 
@@ -223,48 +234,26 @@ if __name__ == "__main__":
 
         for row in res.iter_rows():
 
-            date = row[0]
-            pnl  = row[1]
+            date    = row[0]
+            pnl     = row[1]
 
-            if date not in pnls:
+            # for weekend/holiday trades, the pnl will be appended to the next market day
 
-                pnls[date] = []
+            i       = bisect_left(dates, date)
+            date    = dates[i]
 
             pnls[date].append(pnl)
-
-    dates       =  array(sorted(list(set([ row[in_row.ts].split("T")[0] for row in in_rows ]))))
-    mask        =  array([ 1 for i in range(len(dates)) ])
-
-    # remove saturdays and put move sunday pnls into next weekday
-
-    for i in range(len(dates) - 1):
-
-        cur_day = dates[i]
-        dt      = datetime.strptime(dates[i], "%Y-%m-%d")
-
-        if dt.weekday() == 5:
-
-            mask[i] = 0
-        
-        if dt.weekday() == 6:
-
-            mask[i]         =  0
-            next_day        = dates[i + 1]
-            pnls[next_day]  += pnls[cur_day]
-
-    # results
+    
+    # trader statistics
 
     pnl                 =  [ sum(pnls[date]) for date in dates ]
-    cum_pnl             =  cumsum(pnl)
-    cum_pnl             += init_balance
-    returns             =  array([ log(cum_pnl[i] / cum_pnl[i - 1]) for i in range(1, len(cum_pnl)) ])
+    balance             =  cumsum([ init_balance ] + pnl)
+    returns             =  array([ log(balance[i] / balance[i - 1]) for i in range(1, len(balance)) ])
     cum_ret             =  cumsum(returns)
     mu                  =  mean(returns)
     sigma               =  std(returns)
     sharpe              =  mu / sigma * sqrt(252)
     p_val               =  bootstrap(returns)
-    mask                =  nonzero(mask)
-    dates               =  dates[mask]
     drawdowns           =  [ cum_ret[i] - max(cum_ret[0:i + 1]) for i in range(len(cum_ret)) ]
     h_drawdowns         =  mc_drawdown(returns)
     p_95_h_dd           =  h_drawdowns[int(N * 0.95)]
@@ -274,12 +263,11 @@ if __name__ == "__main__":
     gross_profit        =  sum([ i for i in pnl if i > 0 ])
     gross_loss          =  sum([ abs(i) for i in pnl if i < 0 ])
     profit_factor       =  gross_profit / gross_loss
-    dates               =  dates[1:]
-    SPX                 =  get_spx(dates[0], dates[-1])
-    spx_dates           =  SPX["datetime"][1:]
-    spx_close           =  SPX["close"]
+
+    # index statistics
+
     spx_pnl             =  diff(spx_close)
-    spx_ret             =  [ log(spx_close[i] / spx_close[i - 1]) for i in range(1, len(spx_close)) ]
+    spx_ret             =  array([ log(spx_close[i] / spx_close[i - 1]) for i in range(1, len(spx_close)) ])
     spx_cum_ret         =  cumsum(spx_ret)
     spx_mu              =  mean(spx_ret)
     spx_sigma           =  std(spx_ret)
@@ -292,6 +280,48 @@ if __name__ == "__main__":
     spx_profit_factor   =  spx_gross_profit / spx_gross_loss
     spx_sharpe          =  spx_mu / spx_sigma * sqrt(252)
 
+    # OLS alpha 
+
+    model               =  LinearRegression()
+    
+    model.fit(spx_ret.reshape(-1, 1), returns)
+    X           = arange(min(spx_ret), max(spx_ret), step = 0.00001)
+    Y           = model.predict(X.reshape(-1, 1))
+    b           = model.coef_[0]
+    a           = model.intercept_
+
+    if DEBUG == 5:
+
+        print(f"{'alpha':20}{a:0.4f}")
+        print(f"{'beta':20}{b:0.4f}")
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                {
+                    "x":    spx_ret,
+                    "y":    returns,
+                    "mode": "markers",
+                    "name": "returns",
+                    "text": dates
+                }
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                {
+                    "x":        X,
+                    "y":        Y,
+                    "line":     { "color": "#FF00FF" },
+                    "name":     "model"
+                }
+            )
+        )
+
+        fig.show()
+
     pass
 
     if DEBUG == 2:
@@ -301,9 +331,9 @@ if __name__ == "__main__":
     print("\ntotals")
     print("\n-----\n")
     print(f"{'initial balance':20}{init_balance:>10.2f}")
-    print(f"{'ending balance':20}{cum_pnl[-1]:>10.2f}")
-    print(f"{'pnl':20}{cum_pnl[-1] - init_balance:>10.2f}")
-    print(f"{'return':20}{(cum_pnl[-1] / init_balance - 1) * 100:>10.2f}%")
+    print(f"{'ending balance':20}{balance[-1]:>10.2f}")
+    print(f"{'pnl':20}{balance[-1] - init_balance:>10.2f}")
+    print(f"{'return':20}{(balance[-1] / init_balance - 1) * 100:>10.2f}%")
     print("\n-----\n")
     print(f"{'summary statistics':20}{'trader':>10}{'spx':>10}\n")
     print(f"{'daily return:':20}{mu * 100:>10.2f}%{spx_mu * 100:>10.2f}%")
@@ -319,13 +349,14 @@ if __name__ == "__main__":
     print(f"{'wrc p-value:':20}{p_val:>10.2f}")
     print("\n")
 
-    if DEBUG == 4:
+    if DEBUG == 6:
 
         fig = go.Figure()
 
         traces = [
-            ( "trader", dates, cum_ret, "#0000FF" ),
-            ( "spx", spx_dates, spx_cum_ret, "#FF0000" )
+            ( "trader", cum_ret, "#0000FF" ),
+            ( "spx", spx_cum_ret, "#FF0000" ),
+            #( "alpha", cumsum(returns - (spx_ret * b)), "#ff6600" )
         ]
 
         for trace in traces:
@@ -333,10 +364,10 @@ if __name__ == "__main__":
             fig.add_trace(
                 go.Scatter(
                     {
-                        "x":        trace[1],
-                        "y":        trace[2],
+                        "x":        dates,
+                        "y":        trace[1],
                         "name":     f"{trace[0]} returns",
-                        "marker":   { "color": trace[3] }
+                        "marker":   { "color": trace[2] }
                     }
                 )
             )
