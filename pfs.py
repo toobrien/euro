@@ -380,6 +380,6 @@ if __name__ == "__main__":
 
         fig.show()
 
-    print(f"{time() - t0:0.1f}s")
+    print(f"{time() - t0:0.1f}s\n")
 
     pass
