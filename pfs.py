@@ -2,7 +2,7 @@ from    bisect                  import  bisect_left
 from    config                  import  FUT_DEFS
 from    os.path                 import  join
 from    math                    import  log, sqrt
-from    numpy                   import  arange, array, cumsum, diff, mean, std
+from    numpy                   import  arange, array, corrcoef, cumsum, diff, mean, std
 from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, thinkorswim
 import  plotly.graph_objects    as      go
@@ -289,6 +289,7 @@ if __name__ == "__main__":
     Y       = model.predict(X.reshape(-1, 1))
     b       = model.coef_[0]
     a       = model.intercept_
+    corr    = corrcoef(spx_ret, returns)[0, 1]
 
     pass
 
@@ -352,6 +353,7 @@ if __name__ == "__main__":
     print(f"{'sharpe ratio:':20}{sharpe:>10.2f}{spx_sharpe:>10.2f}")
     print(f"{'alpha:':20}{a:>10.4f}")
     print(f"{'beta:':20}{b:>10.4f}")
+    print(f"{'correlation:':20}{corr:>10.4f}")
     print(f"{'wrc p-value:':20}{p_val:>10.2f}")
     print("\n")
 
