@@ -281,13 +281,14 @@ if __name__ == "__main__":
 
     # OLS alpha 
 
-    model               =  LinearRegression()
+    model   =  LinearRegression()
     
     model.fit(spx_ret.reshape(-1, 1), returns)
-    X           = arange(min(spx_ret), max(spx_ret), step = 0.00001)
-    Y           = model.predict(X.reshape(-1, 1))
-    b           = model.coef_[0]
-    a           = model.intercept_
+
+    X       = arange(min(spx_ret), max(spx_ret), step = 0.00001)
+    Y       = model.predict(X.reshape(-1, 1))
+    b       = model.coef_[0]
+    a       = model.intercept_
 
     pass
 
