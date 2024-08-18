@@ -127,7 +127,7 @@ def get_daily(
 
     if DEBUG == 2:
 
-        print(f"{symbol:20}{sum(pnl):>10.2f}")
+        print(f"{symbol:20}{sum(pnl):>15.2f}")
 
     res = res.group_by("date", maintain_order = True).agg(
                     [ 
@@ -159,7 +159,7 @@ def mean_bootstrap(returns: array):
 
         sampling_mu = mean(sampling_dist)
 
-        print(f"{'sampling_mu':20}{sampling_mu:>10.10f}")
+        print(f"{'sampling_mu':20}{sampling_mu:>15.15f}")
 
         fig = go.Figure()
 
@@ -204,10 +204,10 @@ def sharpe_bootstrap(
         adjusted_sigma      = std(adjusted_returns)
         adjusted_sharpe     = adjusted_mu / adjusted_sigma * sqrt(252)
         
-        print(f"{'adj_mu:':20}{adjusted_mu * 100:>10.2f}%")
-        print(f"{'adj_sigma:':20}{adjusted_sigma * 100:>10.2f}%")
-        print(f"{'adj_sharpe':20}{adjusted_sharpe:>10.2f}\n")
-        print(f"{'sampling_mean':20}{mean(sampling_dist):>10.2f}")
+        print(f"{'adj_mu:':20}{adjusted_mu * 100:>15.2f}%")
+        print(f"{'adj_sigma:':20}{adjusted_sigma * 100:>15.2f}%")
+        print(f"{'adj_sharpe':20}{adjusted_sharpe:>15.2f}\n")
+        print(f"{'sampling_mean':20}{mean(sampling_dist):>15.2f}")
 
         fig = go.Figure()
 
@@ -381,31 +381,35 @@ if __name__ == "__main__":
 
     if DEBUG == 2:
 
-        print(f"{'TOTAL':20}{sum(pnl):>10.2f}\n")
+        print(f"{'TOTAL':20}{sum(pnl):>15.2f}\n")
 
+    print(f"\ntest period")
+    print("\n-----\n")
+    print(f"{'date range:':20}{start:>15}{end:>15}")
+    print(f"{'trading days:':20}{len(dates):>15}")
     print("\ntotals")
     print("\n-----\n")
-    print(f"{'initial balance':20}{init_balance:>10.2f}")
-    print(f"{'ending balance':20}{balance[-1]:>10.2f}")
-    print(f"{'pnl':20}{balance[-1] - init_balance:>10.2f}")
-    print(f"{'return':20}{(balance[-1] / init_balance - 1) * 100:>10.2f}%")
+    print(f"{'initial balance':20}{init_balance:>15.2f}")
+    print(f"{'ending balance':20}{balance[-1]:>15.2f}")
+    print(f"{'pnl':20}{balance[-1] - init_balance:>15.2f}")
+    print(f"{'return':20}{(balance[-1] / init_balance - 1) * 100:>15.2f}%")
     print("\n-----\n")
-    print(f"{'summary statistics':20}{'trader':>10}{'spx':>10}\n")
-    print(f"{'daily return:':20}{mu * 100:>10.2f}%{spx_mu * 100:>10.2f}%")
-    print(f"{'daily stdev:':20}{sigma * 100:>10.2f}%{spx_sigma * 100:>10.2f}%")
-    print(f"{'annualized return:':20}{mu * 252 * 100:>10.2f}%{spx_mu * 252 * 100:>10.2f}%")
-    print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>10.2f}%{spx_sigma * sqrt(252) * 100:>10.2f}%")
-    print(f"{'max drawdown:':20}{max_dd * 100:>10.2f}%{spx_max_dd * 100:>10.2f}%")
-    print(f"{'avg. drawdown:':20}{mean_dd * 100:>10.2f}%{spx_mean_dd * 100:>10.2f}%")
-    print(f"{'mc drawdown, p95:':20}{-p_95_h_dd * 100:>10.2f}%")
-    print(f"{'MAR ratio:':20}{mar_ratio:>10.2f}{spx_mar_ratio:>10.2f}")
-    print(f"{'profit factor:':20}{profit_factor:>10.2f}{spx_profit_factor:>10.2f}")
-    print(f"{'alpha:':20}{a:>10.4f}")
-    print(f"{'beta:':20}{b:>10.4f}")
-    print(f"{'correlation:':20}{corr:>10.4f}")
-    print(f"{'sharpe ratio:':20}{sharpe:>10.2f}{spx_sharpe:>10.2f}")
-    print(f"{'wrc(mean > 0):':20}{mean_p_val:>10.2f}")
-    print(f"{'wrc(sharpe > index):':20}{sharpe_p_val:>10.2f}")
+    print(f"{'summary statistics':20}{'trader':>15}{'spx':>15}\n")
+    print(f"{'daily return:':20}{mu * 100:>15.2f}%{spx_mu * 100:>15.2f}%")
+    print(f"{'daily stdev:':20}{sigma * 100:>15.2f}%{spx_sigma * 100:>15.2f}%")
+    print(f"{'annualized return:':20}{mu * 252 * 100:>15.2f}%{spx_mu * 252 * 100:>15.2f}%")
+    print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>15.2f}%{spx_sigma * sqrt(252) * 100:>15.2f}%")
+    print(f"{'max drawdown:':20}{max_dd * 100:>15.2f}%{spx_max_dd * 100:>15.2f}%")
+    print(f"{'avg. drawdown:':20}{mean_dd * 100:>15.2f}%{spx_mean_dd * 100:>15.2f}%")
+    print(f"{'mc drawdown, p95:':20}{-p_95_h_dd * 100:>15.2f}%")
+    print(f"{'MAR ratio:':20}{mar_ratio:>15.2f}{spx_mar_ratio:>15.2f}")
+    print(f"{'profit factor:':20}{profit_factor:>15.2f}{spx_profit_factor:>15.2f}")
+    print(f"{'alpha:':20}{a:>15.4f}")
+    print(f"{'beta:':20}{b:>15.4f}")
+    print(f"{'correlation:':20}{corr:>15.4f}")
+    print(f"{'sharpe ratio:':20}{sharpe:>15.2f}{spx_sharpe:>15.2f}")
+    print(f"{'wrc(mean > 0):':20}{mean_p_val:>15.2f}")
+    print(f"{'wrc(sharpe > index):':20}{sharpe_p_val:>15.2f}")
     print("\n")
 
     if DEBUG == 6:
