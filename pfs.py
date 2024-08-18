@@ -401,28 +401,29 @@ if __name__ == "__main__":
     print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>15.2f}%{spx_sigma * sqrt(252) * 100:>15.2f}%")
     print(f"{'max drawdown:':20}{max_dd * 100:>15.2f}%{spx_max_dd * 100:>15.2f}%")
     print(f"{'avg. drawdown:':20}{mean_dd * 100:>15.2f}%{spx_mean_dd * 100:>15.2f}%")
-    print(f"{'mc drawdown, p95:':20}{-p_95_h_dd * 100:>15.2f}%")
-    print(f"{'MAR ratio:':20}{mar_ratio:>15.2f}{spx_mar_ratio:>15.2f}")
-    print(f"{'profit factor:':20}{profit_factor:>15.2f}{spx_profit_factor:>15.2f}")
-    print(f"{'alpha:':20}{a:>15.4f}")
-    print(f"{'beta:':20}{b:>15.4f}")
-    print(f"{'correlation:':20}{corr:>15.4f}")
-    print(f"{'sharpe ratio:':20}{sharpe:>15.2f}{spx_sharpe:>15.2f}")
-    print(f"{'wrc(mean > 0):':20}{mean_p_val:>15.2f}")
-    print(f"{'wrc(sharpe > index):':20}{sharpe_p_val:>15.2f}")
+    print(f"{'mc drawdown, p95:':20}{-p_95_h_dd * 100:>15.2f}%{'-':>15}")
+    print(f"{'MAR ratio:':20}{mar_ratio:>15.2f} {spx_mar_ratio:>15.2f}")
+    print(f"{'profit factor:':20}{profit_factor:>15.2f} {spx_profit_factor:>15.2f}")
+    print(f"{'alpha:':20}{a:>15.4f} {'-':>15}")
+    print(f"{'beta:':20}{b:>15.4f} {'-':>15}")
+    print(f"{'correlation:':20} {corr:>15.4f}")
+    print(f"{'sharpe ratio:':20}{sharpe:>15.2f} {spx_sharpe:>15.2f}")
+    print(f"{'wrc(mean > 0):':20}{mean_p_val:>15.2f} {'-':>15}")
+    print(f"{'wrc(sharpe > index):':20}{sharpe_p_val:>15.2f} {'-':>15}")
     print("\n")
 
     if DEBUG == 6:
 
         fig = go.Figure()
 
-        scaled_returns      = returns - (mu - spx_mu)
-        cum_scaled_returns  = cumsum(scaled_returns)
+        adjusted_returns        = returns * (spx_sigma / sigma)
+        adjusted_returns        = adjusted_returns - (mean(adjusted_returns) - spx_mu)
+        adjusted_cum_returns    = cumsum(adjusted_returns)
 
         traces = [
             ( "trader", cum_ret, "#0000FF", "y1" ),
             ( "spx", spx_cum_ret, "#FF0000", "y1" ),
-            ( "scaled", cum_scaled_returns, "#FF00FF", "y1" )
+            ( "scaled", adjusted_cum_returns, "#FF00FF", "y1" )
         ]
 
         for trace in traces:
