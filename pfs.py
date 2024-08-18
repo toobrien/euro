@@ -4,7 +4,7 @@ from    os.path                 import  join
 from    math                    import  log, sqrt
 from    numpy                   import  arange, array, corrcoef, cumsum, diff, mean, std
 from    numpy.random            import  choice
-from    parsers                 import  ninjatrader, tradovate, thinkorswim
+from    parsers                 import  ninjatrader, tradovate, tradovate_tv, thinkorswim
 import  plotly.graph_objects    as      go
 import  polars                  as      pl
 from    sklearn.linear_model    import  LinearRegression
@@ -18,6 +18,7 @@ DEBUG   = 0
 N       = 10_000
 PARSERS = { 
             "tradovate":    tradovate,
+            "tradovate_tv": tradovate_tv,
             "thinkorswim":  thinkorswim,
             "ninjatrader":  ninjatrader
         }
@@ -362,9 +363,9 @@ if __name__ == "__main__":
         fig = go.Figure()
 
         traces = [
-            ( "trader", cum_ret, "#0000FF" ),
-            ( "spx", spx_cum_ret, "#FF0000" ),
-            #( "alpha", cumsum(returns - (spx_ret * b)), "#ff6600" )
+            ( "trader", cum_ret, "#0000FF", "y1" ),
+            ( "spx", spx_cum_ret, "#FF0000", "y2" ),
+            #( "alpha", cumsum(returns - (spx_ret * b)), "#ff6600", "y1" )
         ]
 
         for trace in traces:
@@ -375,11 +376,15 @@ if __name__ == "__main__":
                         "x":        dates,
                         "y":        trace[1],
                         "name":     f"{trace[0]} returns",
-                        "marker":   { "color": trace[2] }
+                        "marker":   { "color": trace[2] },
+                        "yaxis":    trace[3]
                     }
                 )
             )
 
+        fig.update_layout(
+            yaxis2 = { "overlaying": "y", "side": "right" }
+        )
         fig.show()
 
     print(f"{time() - t0:0.1f}s\n")

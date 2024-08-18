@@ -1,6 +1,6 @@
 from    bisect  import  bisect_left
 from    os.path import  join
-from    parsers import  ninjatrader, tradovate, thinkorswim
+from    parsers import  ninjatrader, tradovate, tradovate_tv, thinkorswim
 from    polars  import  Config, DataFrame
 from    sys     import  argv
 from    time    import  time
@@ -12,6 +12,7 @@ from    util    import  in_row
 
 PARSERS = { 
             "tradovate":    tradovate,
+            "tradovate_tv": tradovate_tv,
             "thinkorswim":  thinkorswim,
             "ninjatrader":  ninjatrader
         }
