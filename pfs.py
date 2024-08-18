@@ -138,7 +138,7 @@ def get_daily(
     return res
 
 
-def bootstrap(returns: array):
+def mean_bootstrap(returns: array):
 
     mu              = mean(returns)
     returns         = returns - mu
@@ -165,6 +165,54 @@ def bootstrap(returns: array):
 
         fig.add_trace(go.Histogram(x = sampling_dist, name = "sampling distribution"))
         fig.add_vline(x = mu, line_color = "#FF00FF")
+
+        fig.show()
+
+    return p
+
+
+def sharpe_bootstrap(
+    trader_returns:   array, 
+    spx_returns:      array
+):
+
+    trader_mu           = mean(trader_returns)
+    trader_sigma        = std(trader_returns)
+    trader_sharpe       = trader_mu / trader_sigma * sqrt(252)
+    spx_mu              = mean(spx_returns)
+    spx_sigma           = std(spx_returns)
+    adjusted_returns    = trader_returns * (spx_sigma / trader_sigma)
+    adjusted_returns    = adjusted_returns - (mean(adjusted_returns) - spx_mu)
+
+    sampling_dist = []
+
+    for i in range(N):
+
+        sample          = choice(adjusted_returns, size = adjusted_returns.shape[0], replace = True)
+        sample_mu       = mean(sample)
+        sample_sigma    = std(sample)
+        
+        sampling_dist.append(sample_mu / sample_sigma * sqrt(252))
+
+    sampling_dist   = sorted(sampling_dist)
+    i               = bisect_left(sampling_dist, trader_sharpe)
+    p               = 1 - i / N
+
+    if DEBUG == 7:
+
+        adjusted_mu         = mean(adjusted_returns)
+        adjusted_sigma      = std(adjusted_returns)
+        adjusted_sharpe     = adjusted_mu / adjusted_sigma * sqrt(252)
+        
+        print(f"{'adj_mu:':20}{adjusted_mu * 100:>10.2f}%")
+        print(f"{'adj_sigma:':20}{adjusted_sigma * 100:>10.2f}%")
+        print(f"{'adj_sharpe':20}{adjusted_sharpe:>10.2f}\n")
+        print(f"{'sampling_mean':20}{mean(sampling_dist):>10.2f}")
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Histogram(x = sampling_dist, name = "sampling distribution"))
+        fig.add_vline(x = trader_sharpe, line_color = "#FF00FF")
 
         fig.show()
 
@@ -244,26 +292,6 @@ if __name__ == "__main__":
 
             pnls[date].append(pnl)
     
-    # trader statistics
-
-    pnl                 =  [ sum(pnls[date]) for date in dates ]
-    balance             =  cumsum([ init_balance ] + pnl)
-    returns             =  array([ log(balance[i] / balance[i - 1]) for i in range(1, len(balance)) ])
-    cum_ret             =  cumsum(returns)
-    mu                  =  mean(returns)
-    sigma               =  std(returns)
-    sharpe              =  mu / sigma * sqrt(252)
-    p_val               =  bootstrap(returns)
-    drawdowns           =  [ cum_ret[i] - max(cum_ret[0:i + 1]) for i in range(len(cum_ret)) ]
-    h_drawdowns         =  mc_drawdown(returns)
-    p_95_h_dd           =  h_drawdowns[int(N * 0.95)]
-    max_dd              =  min(drawdowns)
-    mean_dd             =  mean(drawdowns)
-    mar_ratio           =  (mu * 252) / abs(max_dd)
-    gross_profit        =  sum([ i for i in pnl if i > 0 ])
-    gross_loss          =  sum([ abs(i) for i in pnl if i < 0 ])
-    profit_factor       =  gross_profit / gross_loss
-
     # index statistics
 
     spx_pnl             =  diff(spx_close)
@@ -279,6 +307,27 @@ if __name__ == "__main__":
     spx_gross_loss      =  sum([ abs(i) for i in spx_pnl if i < 0 ])
     spx_profit_factor   =  spx_gross_profit / spx_gross_loss
     spx_sharpe          =  spx_mu / spx_sigma * sqrt(252)
+
+    # trader statistics
+
+    pnl                 =  [ sum(pnls[date]) for date in dates ]
+    balance             =  cumsum([ init_balance ] + pnl)
+    returns             =  array([ log(balance[i] / balance[i - 1]) for i in range(1, len(balance)) ])
+    cum_ret             =  cumsum(returns)
+    mu                  =  mean(returns)
+    sigma               =  std(returns)
+    sharpe              =  mu / sigma * sqrt(252)
+    mean_p_val          =  mean_bootstrap(returns)
+    sharpe_p_val        =  sharpe_bootstrap(returns, spx_ret)
+    drawdowns           =  [ cum_ret[i] - max(cum_ret[0:i + 1]) for i in range(len(cum_ret)) ]
+    h_drawdowns         =  mc_drawdown(returns)
+    p_95_h_dd           =  h_drawdowns[int(N * 0.95)]
+    max_dd              =  min(drawdowns)
+    mean_dd             =  mean(drawdowns)
+    mar_ratio           =  (mu * 252) / abs(max_dd)
+    gross_profit        =  sum([ i for i in pnl if i > 0 ])
+    gross_loss          =  sum([ abs(i) for i in pnl if i < 0 ])
+    profit_factor       =  gross_profit / gross_loss
 
     # OLS alpha 
 
@@ -355,17 +404,21 @@ if __name__ == "__main__":
     print(f"{'alpha:':20}{a:>10.4f}")
     print(f"{'beta:':20}{b:>10.4f}")
     print(f"{'correlation:':20}{corr:>10.4f}")
-    print(f"{'wrc p-value:':20}{p_val:>10.2f}")
+    print(f"{'wrc(mean > 0):':20}{mean_p_val:>10.2f}")
+    print(f"{'wrc(sharpe > index):':20}{sharpe_p_val:>10.2f}")
     print("\n")
 
     if DEBUG == 6:
 
         fig = go.Figure()
 
+        adjusted_returns    = returns * (spx_sigma / sigma)
+        adjusted_returns    = adjusted_returns - (mean(adjusted_returns) - spx_mu)
+
         traces = [
             ( "trader", cum_ret, "#0000FF", "y1" ),
-            ( "spx", spx_cum_ret, "#FF0000", "y2" ),
-            #( "alpha", cumsum(returns - (spx_ret * b)), "#ff6600", "y1" )
+            ( "spx", spx_cum_ret, "#FF0000", "y1" ),
+            ( "adjusted", cumsum(adjusted_returns), "#FF00FF", "y1" )
         ]
 
         for trace in traces:
