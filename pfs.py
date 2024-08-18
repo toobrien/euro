@@ -14,6 +14,7 @@ from    util                    import  get_sc_df, get_spx, in_row
 from    typing                  import  List
 
 
+SKIP    = [ "GC" ]
 DEBUG   = 0
 N       = 10_000
 PARSERS = { 
@@ -249,6 +250,7 @@ if __name__ == "__main__":
     init_balance    = float(argv[4])
     DEBUG           = int(argv[5])
     in_rows         = parser.parse(in_fn, tz, None, 0)
+    in_rows         = [ row for row in in_rows if row[in_row.symbol] not in SKIP ]
     start           = in_rows[0][in_row.ts].split("T")[0]
     end             = in_rows[-1][in_row.ts].split("T")[0]
     symbols         = sorted(set([ row[in_row.symbol] for row in in_rows ]))
