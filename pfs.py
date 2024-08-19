@@ -144,13 +144,7 @@ def mean_bootstrap(returns: array):
     mu              = mean(returns)
     returns         = returns - mu
     sampling_dist   = sorted([ 
-                        mean(
-                                choice(
-                                returns, 
-                                size    = returns.shape[0], 
-                                replace = True
-                            )
-                        ) 
+                        mean(choice(returns, size = returns.shape[0], replace = True)) 
                         for _ in range(N) 
                     ])
     i               = bisect_left(sampling_dist, mu) 
@@ -337,11 +331,11 @@ if __name__ == "__main__":
     
     model.fit(spx_ret.reshape(-1, 1), returns)
 
-    X       = arange(min(spx_ret), max(spx_ret), step = 0.00001)
-    Y       = model.predict(X.reshape(-1, 1))
-    b       = model.coef_[0]
-    a       = model.intercept_
-    corr    = corrcoef(spx_ret, returns)[0, 1]
+    X           = arange(min(spx_ret), max(spx_ret), step = 0.00001)
+    Y           = model.predict(X.reshape(-1, 1))
+    b           = model.coef_[0]
+    a           = model.intercept_
+    corr        = corrcoef(spx_ret, returns)[0, 1]
 
     pass
 
