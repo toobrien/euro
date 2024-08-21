@@ -180,12 +180,12 @@ def sharpe_bootstrap(returns: array):
 
     for _ in range(N):
 
-        resample        = choice(returns, size = M, replace = True)
-        resample_mu     = mean(resample)
-        resample_sigma  = std(resample)
-        resample_sharpe = resample_mu / resample_sigma
-        resample_err    = sqrt((1 + 1/2 * resample_sharpe**2) / M)
-        T               = (resample_sharpe - sample_sharpe) / resample_err
+        resample            = choice(returns, size = M, replace = True)
+        resample_mu         = mean(resample)
+        resample_sigma      = std(resample)
+        resample_sharpe     = resample_mu / resample_sigma
+        resample_std_err    = sqrt((1 + 1/2 * resample_sharpe**2) / M)
+        T                   = (resample_sharpe - sample_sharpe) / resample_std_err
 
         sampling_dist.append(T)
     
@@ -194,8 +194,8 @@ def sharpe_bootstrap(returns: array):
     i               = int(beta / 2 * N)
     j               = int((1 - beta / 2) * N)
     index_sr        = 0.48
-    p               = bisect_left(sampling_dist, index_sr) / N
     res             = ( sampling_dist[i], sampling_dist[j], p )
+    p               = bisect_left(sampling_dist, index_sr) / N
 
     '''
     # reference -- 95% CI
@@ -211,7 +211,7 @@ def sharpe_bootstrap(returns: array):
     ci = bs.conf_int(sr, N, method = "percentile")
     ci = ci * sqrt(252)
     '''
-    
+
     return res
 
 
