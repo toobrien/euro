@@ -1,8 +1,9 @@
+from    arch.bootstrap          import  IIDBootstrap
 from    bisect                  import  bisect_left
 from    config                  import  FUT_DEFS
 from    os.path                 import  join
-from    math                    import  log, sqrt
-from    numpy                   import  arange, array, corrcoef, cumsum, diff, mean, std
+from    math                    import  log
+from    numpy                   import  arange, array, corrcoef, cumsum, diag, diff, mean, std, sqrt, vstack
 from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, tradovate_tv, thinkorswim
 import  plotly.graph_objects    as      go
@@ -166,52 +167,52 @@ def mean_bootstrap(returns: array):
     return p
 
 
-def sharpe_bootstrap(
-    trader_returns:   array, 
-    spx_returns:      array
-):
+def sharpe_bootstrap(returns: array):
+    
+    alpha           = 0.95
+    beta            = 1 - alpha
+    M               = returns.shape[0]
+    sample_mu       = mean(returns)
+    sample_sigma    = std(returns)
+    sample_sharpe   = sample_mu / sample_sigma
+    sample_std_err  = sqrt((1 + 1/2 * sample_sharpe**2) / M)
+    sampling_dist   = []
 
-    trader_mu           = mean(trader_returns)
-    trader_sigma        = std(trader_returns)
-    trader_sharpe       = trader_mu / trader_sigma * sqrt(252)
-    spx_mu              = mean(spx_returns)
-    spx_sigma           = std(spx_returns)
-    adjusted_returns    = trader_returns * (spx_sigma / trader_sigma)
-    adjusted_returns    = adjusted_returns - (mean(adjusted_returns) - spx_mu)
+    for _ in range(N):
 
-    sampling_dist = []
+        resample        = choice(returns, size = M, replace = True)
+        resample_mu     = mean(resample)
+        resample_sigma  = std(resample)
+        resample_sharpe = resample_mu / resample_sigma
+        resample_err    = sqrt((1 + 1/2 * resample_sharpe**2) / M)
+        T               = (resample_sharpe - sample_sharpe) / resample_err
 
-    for i in range(N):
-
-        sample          = choice(adjusted_returns, size = adjusted_returns.shape[0], replace = True)
-        sample_mu       = mean(sample)
-        sample_sigma    = std(sample)
-        
-        sampling_dist.append(sample_mu / sample_sigma * sqrt(252))
-
+        sampling_dist.append(T)
+    
     sampling_dist   = sorted(sampling_dist)
-    i               = bisect_left(sampling_dist, trader_sharpe)
-    p               = 1 - i / N
+    sampling_dist   = array([ sample_sharpe + (sample_std_err * t) for t in sampling_dist ]) * sqrt(252)
+    i               = int(beta / 2 * N)
+    j               = int((1 - beta / 2) * N)
+    index_sr        = 0.48
+    p               = bisect_left(sampling_dist, index_sr) / N
+    res             = ( sampling_dist[i], sampling_dist[j], p )
 
-    if DEBUG == 7:
+    '''
+    # reference -- 95% CI
 
-        adjusted_mu         = mean(adjusted_returns)
-        adjusted_sigma      = std(adjusted_returns)
-        adjusted_sharpe     = adjusted_mu / adjusted_sigma * sqrt(252)
+    def sr(x):
+
+        mu      = mean(x)
+        sigma   = std(x)
         
-        print(f"{'adj_mu:':20}{adjusted_mu * 100:>15.2f}%")
-        print(f"{'adj_sigma:':20}{adjusted_sigma * 100:>15.2f}%")
-        print(f"{'adj_sharpe':20}{adjusted_sharpe:>15.2f}\n")
-        print(f"{'sampling_mean':20}{mean(sampling_dist):>15.2f}")
-
-        fig = go.Figure()
-
-        fig.add_trace(go.Histogram(x = sampling_dist, name = "sampling distribution"))
-        fig.add_vline(x = trader_sharpe, line_color = "#FF00FF")
-
-        fig.show()
-
-    return p
+        return array([ mu, sigma, mu / sigma ])
+    
+    bs = IIDBootstrap(returns)
+    ci = bs.conf_int(sr, N, method = "percentile")
+    ci = ci * sqrt(252)
+    '''
+    
+    return res
 
 
 def mc_drawdown(returns: array):
@@ -314,7 +315,10 @@ if __name__ == "__main__":
     sigma               =  std(returns)
     sharpe              =  mu / sigma * sqrt(252)
     mean_p_val          =  mean_bootstrap(returns)
-    sharpe_p_val        =  sharpe_bootstrap(returns, spx_ret)
+    sharpe_res          =  sharpe_bootstrap(returns)
+    sharpe_ci_lo        =  sharpe_res[0]
+    sharpe_ci_hi        =  sharpe_res[1]
+    sharpe_p_val        =  sharpe_res[2]
     drawdowns           =  [ cum_ret[i] - max(cum_ret[0:i + 1]) for i in range(len(cum_ret)) ]
     h_drawdowns         =  mc_drawdown(returns)
     p_95_h_dd           =  h_drawdowns[int(N * 0.95)]
@@ -402,10 +406,12 @@ if __name__ == "__main__":
     print(f"{'profit factor:':20} {profit_factor:>15.2f}{spx_profit_factor:>15.2f}")
     print(f"{'alpha:':20} {a:>15.4f}{'-':>15}")
     print(f"{'beta:':20} {b:>15.4f}{'-':>15}")
-    print(f"{'correlation:':20} {corr:>15.4f}")
+    print(f"{'correlation:':20} {corr:>15.4f}{'-':>15}")
     print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{spx_sharpe:>15.2f}")
-    print(f"{'wrc(mean > 0):':20} {mean_p_val:>15.2f}{'-':>15}")
-    print(f"{'wrc(sharpe > index):':20} {sharpe_p_val:>15.2f}{'-':>15}")
+    print(f"{'p(mean > 0):':20} {mean_p_val:>15.2f}{'-':>15}")
+    print(f"{'sharpe 95% ci lo:':20} {sharpe_ci_lo:>15.2f}{'-':>15}")
+    print(f"{'sharpe 95% ci hi:':20} {sharpe_ci_hi:>15.2f}{'-':>15}")
+    print(f"{'p(sharpe > index):':20} {sharpe_p_val:>15.2f}{'-':>15}")
     print("\n")
 
     if DEBUG == 6:
