@@ -218,30 +218,39 @@ def sharpe_bootstrap(returns: array):
 
 def sharpe_htest(a: array, b: array, rfr: float):
 
-    T           = a.shape[0]
+    T               = a.shape[0]
 
-    mu_a        = mean(a)
-    var_a       = var(a, ddof = 1)
-    sigma_a     = sqrt(var_a)
-    sharpe_a    = (mu_a - rfr) / sigma_a
-    skew_a      = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(a**3) - 3 * sum(a) * sum(a**2) + 2 * sum(a)^3 / T) / ((T - 1) * (T - 2)))) / sigma_a^3
-    kurt_a      = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(a**4) - 4 * (T**2 + T) * sum(a**3) * sum(a) - 3 * (T**2 - T) * sum(a**2)**2 + 12 * T * sum(a**2) * sum(a)^2 - 6 * sum(a)**4) / (var_a**2 * T * (T - 1) * (T - 2) * (T - 3)))
+    mu_a            = mean(a)
+    var_a           = var(a, ddof = 1)
+    sigma_a         = sqrt(var_a)
+    sharpe_a        = (mu_a - rfr) / sigma_a
+    skew_a          = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(a**3) - 3 * sum(a) * sum(a**2) + 2 * sum(a)**3 / T) / ((T - 1) * (T - 2)))) / sigma_a**3
+    kurt_a          = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(a**4) - 4 * (T**2 + T) * sum(a**3) * sum(a) - 3 * (T**2 - T) * sum(a**2)**2 + 12 * T * sum(a**2) * sum(a)**2 - 6 * sum(a)**4) / (var_a**2 * T * (T - 1) * (T - 2) * (T - 3)) )
 
-    mu_b        = mean(b)
-    var_b       = var(b, ddof = 1)
-    sigma_b     = sqrt(var_b)
-    sharpe_b    = (mu_b - rfr) / sigma_b
-    b_2         = b**2
-    b_3         = b**3
-    b_4         = b**4
-    skew_b      = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(b**3) - 3 * sum(b) * sum(b**2) + 2 * sum(b) ^ 3 / T) / ((T - 1) * (T - 2)))) / sigma_b^3
-    kurt_b      = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(b**4) - 4 * (T^2 + T) * sum(b**3) * sum(b) - 3 * (T**2 - T) * sum(b**2)**2 + 12 * T * sum(b**2) * sum(b)**2 - 6 * sum(b)**4) / (var_b**2 * T * (T - 1) * (T - 2) * (T - 3)))
+    mu_b            = mean(b)
+    var_b           = var(b, ddof = 1)
+    sigma_b         = sqrt(var_b)
+    sharpe_b        = (mu_b - rfr) / sigma_b
+    skew_b          = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(b**3) - 3 * sum(b) * sum(b**2) + 2 * sum(b)**3 / T) / ((T - 1) * (T - 2)))) / sigma_b**3
+    kurt_b          = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(b**4) - 4 * (T**2 + T) * sum(b**3) * sum(b) - 3 * (T**2 - T) * sum(b**2)**2 + 12 * T * sum(b**2) * sum(b)**2 - 6 * sum(b)**4) / (var_b**2 * T * (T - 1) * (T - 2) * (T - 3)))
 
-    corr_ab     = corrcoef(a, b, ddof = 1)[0, 1]
-
-    var_diff    = None
+    corr_ab         = corrcoef(a, b, ddof = 1)[0, 1]
+    u_2a_2b         = (-3 * sum(b)**2 * sum(a)**2 + T * sum(b**2) * sum(a)**2 + 4 * T * sum(b) * sum(a) * sum(a * b) - 2 * (2 * T - 3) * sum(a * b)**2 - 2 * (T**2 - 2 * T + 3) * sum(a) * sum(a * b**2) + sum(b)**2 * sum(a**2) - (2 * T - 3) * sum(b**2) * sum(a**2) - 2 * (T**2 - 2 * T + 3) * sum(b) * sum(a**2 * b) + T * (T**2 - 2 * T + 3) * sum(a**2 * b**2)) / (T * (T - 1) * (T - 2) * (T - 3))
+    u_1a_2b         = (2 * sum(b)**2 * sum(a) - T * sum(b**2) * sum(a) - 2 * sum(b) * sum(a * b) + T**2 * sum(a * b**2)) / (T * (T - 1) * (T - 2))
+    u_1b_2a         = (2 * sum(a)**2 * sum(b) - T * sum(a**2) * sum(b) - 2 * sum(a) * sum(a * b) + T**2 * sum(a**2 *b)) / (T * (T-1) * (T-2))
+    var_sharpe_a    = 1 + sharpe_a**2 / 4 * (kurt_a - 1) - sharpe_a * skew_a
+    var_sharpe_b    = 1 + sharpe_b**2 / 4 * (kurt_b - 1) - sharpe_b * skew_b
+    cov_sharpe_ab   = (
+                        corr_ab + (sharpe_a * sharpe_b / 4) * (u_2a_2b / (var_a * var_b) - 1) -
+                        0.5 * sharpe_a * u_1b_2a / (sigma_b * var_a) - 
+                        0.5 * sharpe_b * u_1a_2b / (sigma_a * var_b)
+                    )
+    var_diff        = var_sharpe_a + var_sharpe_b - 2 * cov_sharpe_ab
+    sigma_diff      = sqrt(var_diff / (T - 1))
 
     pass
+
+    return None
 
 
 def mc_drawdown(returns: array):
