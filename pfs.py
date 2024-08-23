@@ -3,7 +3,7 @@ from    bisect                  import  bisect_left
 from    config                  import  FUT_DEFS
 from    os.path                 import  join
 from    math                    import  log
-from    numpy                   import  arange, array, corrcoef, cumsum, diag, diff, mean, std, sqrt, vstack
+from    numpy                   import  arange, array, corrcoef, cumsum, diff, mean, std, sqrt, var
 from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, tradovate_tv, thinkorswim
 import  plotly.graph_objects    as      go
@@ -15,6 +15,7 @@ from    util                    import  get_sc_df, get_spx, in_row
 from    typing                  import  List
 
 
+RFR     = log(1 + 0.052) / 252
 SKIP    = [ "GC" ]
 DEBUG   = 0
 N       = 10_000
@@ -213,6 +214,34 @@ def sharpe_bootstrap(returns: array):
     '''
 
     return res
+
+
+def sharpe_htest(a: array, b: array, rfr: float):
+
+    T           = a.shape[0]
+
+    mu_a        = mean(a)
+    var_a       = var(a, ddof = 1)
+    sigma_a     = sqrt(var_a)
+    sharpe_a    = (mu_a - rfr) / sigma_a
+    skew_a      = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(a**3) - 3 * sum(a) * sum(a**2) + 2 * sum(a)^3 / T) / ((T - 1) * (T - 2)))) / sigma_a^3
+    kurt_a      = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(a**4) - 4 * (T**2 + T) * sum(a**3) * sum(a) - 3 * (T**2 - T) * sum(a**2)**2 + 12 * T * sum(a**2) * sum(a)^2 - 6 * sum(a)**4) / (var_a**2 * T * (T - 1) * (T - 2) * (T - 3)))
+
+    mu_b        = mean(b)
+    var_b       = var(b, ddof = 1)
+    sigma_b     = sqrt(var_b)
+    sharpe_b    = (mu_b - rfr) / sigma_b
+    b_2         = b**2
+    b_3         = b**3
+    b_4         = b**4
+    skew_b      = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(b**3) - 3 * sum(b) * sum(b**2) + 2 * sum(b) ^ 3 / T) / ((T - 1) * (T - 2)))) / sigma_b^3
+    kurt_b      = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(b**4) - 4 * (T^2 + T) * sum(b**3) * sum(b) - 3 * (T**2 - T) * sum(b**2)**2 + 12 * T * sum(b**2) * sum(b)**2 - 6 * sum(b)**4) / (var_b**2 * T * (T - 1) * (T - 2) * (T - 3)))
+
+    corr_ab     = corrcoef(a, b, ddof = 1)[0, 1]
+
+    var_diff    = None
+
+    pass
 
 
 def mc_drawdown(returns: array):
