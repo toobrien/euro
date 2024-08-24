@@ -252,21 +252,15 @@ def sharpe_htest(a: array, b: array, rfr: float, alpha: float):
     sr_b_bc         = sr_b / (1 + 0.25 * (kurt_b - 1) / T)
     sr_diff         = sr_a_bc - sr_b_bc
 
-    
-    p_sr_diff_eq_0      = p_sr_diff_lte_0 * 2
     ub_sr_diff_eq_0     = norm.ppf(1 - alpha / 2, 0, sigma_diff)
     lb_sr_diff_eq_0     = norm.ppf(alpha / 2, 0, sigma_diff)
     p_sr_diff_lte_0     = 1 - norm.cdf(sr_diff / sigma_diff)
     ub_sr_diff_lte_0    = norm.ppf(1 - alpha, 0, sigma_diff)
-
-    pass_eq_0           = lb_sr_diff_eq_0 < p_sr_diff_eq_0 < ub_sr_diff_eq_0
-    pass_b_gt_a         = p_sr_diff_lte_0 < ub_sr_diff_lte_0
-
+    p_sr_diff_eq_0      = p_sr_diff_lte_0 * 2
+    
     res                 = {
-                            "p_eq_0":           p_sr_diff_eq_0,
-                            "pass_eq_0":        pass_eq_0,
+                            "p_sr_diff_eq_0":   p_sr_diff_eq_0,
                             "p_sr_diff_lte_0":  p_sr_diff_lte_0,
-                            "pass_b_gt_a":      pass_b_gt_a,
                             "sr_diff":          sr_diff
                         }
 
