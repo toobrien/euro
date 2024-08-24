@@ -462,7 +462,6 @@ if __name__ == "__main__":
     print(f"{'correlation:':20} {corr:>15.4f}{'-':>15}")
     print(f"{'p(mean > 0):':20} {mean_p_val:>15.2f}{'-':>15}")
     print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{spx_sharpe:>15.2f}")
-    print(f"{'sharpe diff:':20} {sr_diff:>15.2f}{'-':>15}")
     print(f"{'p(sharpe == index):':20} {p_eq_0:>15.2f}{'-':>15}")
     print(f"{'p(sharpe <= index):':20} {p_inferior:>15.2f}{'-':>15}")
     print("\n")
@@ -471,12 +470,17 @@ if __name__ == "__main__":
 
         fig = go.Figure()
 
-        adjusted_spx = spx_ret * (sigma / spx_sigma)
+        adj_spx     = spx_ret * (sigma / spx_sigma)
+        adj_mu      = mean(adj_spx)
+        adj_sigma   = std(adj_spx)
+        adj_spx_cum = cumsum(adj_spx)
+        
+        pass
 
         traces = [
             ( "trader", cum_ret, "#0000FF", "y1" ),
             ( "spx", spx_cum_ret, "#FF0000", "y1" ),
-            ( "adjusted_spx", adjusted_spx, "#FF00FF", "y1" )
+            ( "adjusted_spx", adj_spx_cum, "#FF00FF", "y1" )
         ]
 
         for trace in traces:
@@ -499,5 +503,3 @@ if __name__ == "__main__":
         fig.show()
 
     print(f"{time() - t0:0.1f}s\n")
-
-    pass
