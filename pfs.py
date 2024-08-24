@@ -254,13 +254,13 @@ def sharpe_htest(a: array, b: array, rfr: float, alpha: float):
 
     ub_sr_diff_eq_0     = norm.ppf(1 - alpha / 2, 0, sigma_diff)
     lb_sr_diff_eq_0     = norm.ppf(alpha / 2, 0, sigma_diff)
-    p_sr_diff_lte_0     = 1 - norm.cdf(sr_diff / sigma_diff)
     ub_sr_diff_lte_0    = norm.ppf(1 - alpha, 0, sigma_diff)
     p_sr_diff_eq_0      = p_sr_diff_lte_0 * 2
+    p_sr_diff_lte_0     = 1 - norm.cdf(sr_diff / sigma_diff)
 
     res                 = {
                             "p_eq_0":       p_sr_diff_eq_0,
-                            "p_b_gt_a":     p_sr_diff_lte_0,
+                            "p_b_lt_a":     p_sr_diff_lte_0,
                             "sr_diff":      sr_diff
                         }
 
@@ -367,10 +367,10 @@ if __name__ == "__main__":
     sigma               =  std(returns)
     sharpe              =  mu / sigma * sqrt(252)
     mean_p_val          =  mean_bootstrap(returns)
-    sharpe_res          =  sr_bootstrap(returns)
-    sharpe_ci_lo        =  sharpe_res[0]
-    sharpe_ci_hi        =  sharpe_res[1]
-    sharpe_p_val        =  sharpe_res[2]
+    sharpe_res          =  sharpe_htest(spx_ret, returns, RFR, 0.05)
+    p_eq_0              =  sharpe_res["p_eq_0"]
+    p_inferior          =  sharpe_res["p_b_lt_a"]
+    sr_diff             =  sharpe_res["sr_diff"]
     drawdowns           =  [ cum_ret[i] - max(cum_ret[0:i + 1]) for i in range(len(cum_ret)) ]
     h_drawdowns         =  mc_drawdown(returns)
     p_95_h_dd           =  h_drawdowns[int(N * 0.95)]
@@ -459,11 +459,11 @@ if __name__ == "__main__":
     print(f"{'alpha:':20} {a:>15.4f}{'-':>15}")
     print(f"{'beta:':20} {b:>15.4f}{'-':>15}")
     print(f"{'correlation:':20} {corr:>15.4f}{'-':>15}")
-    print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{spx_sharpe:>15.2f}")
     print(f"{'p(mean > 0):':20} {mean_p_val:>15.2f}{'-':>15}")
-    print(f"{'sharpe 95% ci lo:':20} {sharpe_ci_lo:>15.2f}{'-':>15}")
-    print(f"{'sharpe 95% ci hi:':20} {sharpe_ci_hi:>15.2f}{'-':>15}")
-    print(f"{'p(sharpe > index):':20} {sharpe_p_val:>15.2f}{'-':>15}")
+    print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{spx_sharpe:>15.2f}")
+    print(f"{'excess sharpe:':20} {sr_diff:>15.2f}{'-':>15.2f}")
+    print(f"{'p(sharpe == index):':20} {p_eq_0:>15.2f}{'-':>15}")
+    print(f"{'p(sharpe <= index):':20} {p_inferior:>15.2f}{'-':>15}")
     print("\n")
 
     if DEBUG == 6:
