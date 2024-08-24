@@ -462,7 +462,7 @@ if __name__ == "__main__":
     print(f"{'correlation:':20} {corr:>15.4f}{'-':>15}")
     print(f"{'p(mean > 0):':20} {mean_p_val:>15.2f}{'-':>15}")
     print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{spx_sharpe:>15.2f}")
-    print(f"{'excess sharpe:':20} {sr_diff:>15.2f}{'-':>15.2f}")
+    print(f"{'sharpe diff:':20} {sr_diff:>15.2f}{'-':>15}")
     print(f"{'p(sharpe == index):':20} {p_eq_0:>15.2f}{'-':>15}")
     print(f"{'p(sharpe <= index):':20} {p_inferior:>15.2f}{'-':>15}")
     print("\n")
