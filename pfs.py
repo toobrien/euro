@@ -250,18 +250,18 @@ def sharpe_htest(a: array, b: array, rfr: float, alpha: float):
     sigma_diff      = sqrt(var_diff / (T - 1))
     sr_a_bc         = sr_a / (1 + 0.25 * (kurt_a - 1) / T)
     sr_b_bc         = sr_b / (1 + 0.25 * (kurt_b - 1) / T)
-    sr_diff         = sr_a_bc - sr_b_bc
+    sr_diff         = sr_b_bc - sr_a_bc
 
     ub_sr_diff_eq_0     = norm.ppf(1 - alpha / 2, 0, sigma_diff)
     lb_sr_diff_eq_0     = norm.ppf(alpha / 2, 0, sigma_diff)
     p_sr_diff_lte_0     = 1 - norm.cdf(sr_diff / sigma_diff)
     ub_sr_diff_lte_0    = norm.ppf(1 - alpha, 0, sigma_diff)
     p_sr_diff_eq_0      = p_sr_diff_lte_0 * 2
-    
+
     res                 = {
-                            "p_sr_diff_eq_0":   p_sr_diff_eq_0,
-                            "p_sr_diff_lte_0":  p_sr_diff_lte_0,
-                            "sr_diff":          sr_diff
+                            "p_eq_0":       p_sr_diff_eq_0,
+                            "p_b_gt_a":     p_sr_diff_lte_0,
+                            "sr_diff":      sr_diff
                         }
 
     return res
