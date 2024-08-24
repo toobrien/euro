@@ -132,7 +132,7 @@ def get_daily(
     if DEBUG == 2:
 
         print(f"{symbol:20}{sum(pnl):>15.2f}")
-        
+
         '''
         date        = "2024-03-22"
         selected    = []

@@ -22,7 +22,7 @@ def parse(
     input   = []
     df      = pl.read_csv(
                 in_fn,
-                quote_char = '"',
+                quote_char          = '"',
                 infer_schema_length = 0
             ).select(
             [ "DATE", "TIME", "TYPE", "DESCRIPTION" ]
