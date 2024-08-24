@@ -8,6 +8,7 @@ from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, tradovate_tv, thinkorswim
 import  plotly.graph_objects    as      go
 import  polars                  as      pl
+from    scipy.stats             import  norm
 from    sklearn.linear_model    import  LinearRegression
 from    sys                     import  argv
 from    time                    import  time
@@ -168,7 +169,7 @@ def mean_bootstrap(returns: array):
     return p
 
 
-def sharpe_bootstrap(returns: array):
+def sr_bootstrap(returns: array):
     
     alpha           = 0.95
     beta            = 1 - alpha
@@ -216,41 +217,60 @@ def sharpe_bootstrap(returns: array):
     return res
 
 
-def sharpe_htest(a: array, b: array, rfr: float):
+def sharpe_htest(a: array, b: array, rfr: float, alpha: float):
 
     T               = a.shape[0]
 
     mu_a            = mean(a)
     var_a           = var(a, ddof = 1)
     sigma_a         = sqrt(var_a)
-    sharpe_a        = (mu_a - rfr) / sigma_a
+    sr_a            = (mu_a - rfr) / sigma_a
     skew_a          = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(a**3) - 3 * sum(a) * sum(a**2) + 2 * sum(a)**3 / T) / ((T - 1) * (T - 2)))) / sigma_a**3
     kurt_a          = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(a**4) - 4 * (T**2 + T) * sum(a**3) * sum(a) - 3 * (T**2 - T) * sum(a**2)**2 + 12 * T * sum(a**2) * sum(a)**2 - 6 * sum(a)**4) / (var_a**2 * T * (T - 1) * (T - 2) * (T - 3)) )
 
     mu_b            = mean(b)
     var_b           = var(b, ddof = 1)
     sigma_b         = sqrt(var_b)
-    sharpe_b        = (mu_b - rfr) / sigma_b
+    sr_b            = (mu_b - rfr) / sigma_b
     skew_b          = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(b**3) - 3 * sum(b) * sum(b**2) + 2 * sum(b)**3 / T) / ((T - 1) * (T - 2)))) / sigma_b**3
     kurt_b          = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(b**4) - 4 * (T**2 + T) * sum(b**3) * sum(b) - 3 * (T**2 - T) * sum(b**2)**2 + 12 * T * sum(b**2) * sum(b)**2 - 6 * sum(b)**4) / (var_b**2 * T * (T - 1) * (T - 2) * (T - 3)))
 
     corr_ab         = corrcoef(a, b, ddof = 1)[0, 1]
     u_2a_2b         = (-3 * sum(b)**2 * sum(a)**2 + T * sum(b**2) * sum(a)**2 + 4 * T * sum(b) * sum(a) * sum(a * b) - 2 * (2 * T - 3) * sum(a * b)**2 - 2 * (T**2 - 2 * T + 3) * sum(a) * sum(a * b**2) + sum(b)**2 * sum(a**2) - (2 * T - 3) * sum(b**2) * sum(a**2) - 2 * (T**2 - 2 * T + 3) * sum(b) * sum(a**2 * b) + T * (T**2 - 2 * T + 3) * sum(a**2 * b**2)) / (T * (T - 1) * (T - 2) * (T - 3))
     u_1a_2b         = (2 * sum(b)**2 * sum(a) - T * sum(b**2) * sum(a) - 2 * sum(b) * sum(a * b) + T**2 * sum(a * b**2)) / (T * (T - 1) * (T - 2))
-    u_1b_2a         = (2 * sum(a)**2 * sum(b) - T * sum(a**2) * sum(b) - 2 * sum(a) * sum(a * b) + T**2 * sum(a**2 *b)) / (T * (T-1) * (T-2))
-    var_sharpe_a    = 1 + sharpe_a**2 / 4 * (kurt_a - 1) - sharpe_a * skew_a
-    var_sharpe_b    = 1 + sharpe_b**2 / 4 * (kurt_b - 1) - sharpe_b * skew_b
-    cov_sharpe_ab   = (
-                        corr_ab + (sharpe_a * sharpe_b / 4) * (u_2a_2b / (var_a * var_b) - 1) -
-                        0.5 * sharpe_a * u_1b_2a / (sigma_b * var_a) - 
-                        0.5 * sharpe_b * u_1a_2b / (sigma_a * var_b)
+    u_1b_2a         = (2 * sum(a)**2 * sum(b) - T * sum(a**2) * sum(b) - 2 * sum(a) * sum(a * b) + T**2 * sum(a**2 * b)) / (T * (T - 1) * (T - 2))
+    var_sr_a        = 1 + sr_a**2 / 4 * (kurt_a - 1) - sr_a * skew_a
+    var_sr_b        = 1 + sr_b**2 / 4 * (kurt_b - 1) - sr_b * skew_b
+    cov_sr_ab       = (
+                        corr_ab + (sr_a * sr_b / 4) * (u_2a_2b / (var_a * var_b) - 1) -
+                        0.5 * sr_a * u_1b_2a / (sigma_b * var_a) - 
+                        0.5 * sr_b * u_1a_2b / (sigma_a * var_b)
                     )
-    var_diff        = var_sharpe_a + var_sharpe_b - 2 * cov_sharpe_ab
+    var_diff        = var_sr_a + var_sr_b - 2 * cov_sr_ab
     sigma_diff      = sqrt(var_diff / (T - 1))
+    sr_a_bc         = sr_a / (1 + 0.25 * (kurt_a - 1) / T)
+    sr_b_bc         = sr_b / (1 + 0.25 * (kurt_b - 1) / T)
+    sr_diff         = sr_a_bc - sr_b_bc
 
-    pass
+    
+    p_sr_diff_eq_0      = p_sr_diff_lte_0 * 2
+    ub_sr_diff_eq_0     = norm.ppf(1 - alpha / 2, 0, sigma_diff)
+    lb_sr_diff_eq_0     = norm.ppf(alpha / 2, 0, sigma_diff)
+    p_sr_diff_lte_0     = 1 - norm.cdf(sr_diff / sigma_diff)
+    ub_sr_diff_lte_0    = norm.ppf(1 - alpha, 0, sigma_diff)
 
-    return None
+    pass_eq_0           = lb_sr_diff_eq_0 < p_sr_diff_eq_0 < ub_sr_diff_eq_0
+    pass_b_gt_a         = p_sr_diff_lte_0 < ub_sr_diff_lte_0
+
+    res                 = {
+                            "p_eq_0":           p_sr_diff_eq_0,
+                            "pass_eq_0":        pass_eq_0,
+                            "p_sr_diff_lte_0":  p_sr_diff_lte_0,
+                            "pass_b_gt_a":      pass_b_gt_a,
+                            "sr_diff":          sr_diff
+                        }
+
+    return res
 
 
 def mc_drawdown(returns: array):
@@ -353,7 +373,7 @@ if __name__ == "__main__":
     sigma               =  std(returns)
     sharpe              =  mu / sigma * sqrt(252)
     mean_p_val          =  mean_bootstrap(returns)
-    sharpe_res          =  sharpe_bootstrap(returns)
+    sharpe_res          =  sr_bootstrap(returns)
     sharpe_ci_lo        =  sharpe_res[0]
     sharpe_ci_hi        =  sharpe_res[1]
     sharpe_p_val        =  sharpe_res[2]
