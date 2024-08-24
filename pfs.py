@@ -255,8 +255,8 @@ def sharpe_htest(a: array, b: array, rfr: float, alpha: float):
     ub_sr_diff_eq_0     = norm.ppf(1 - alpha / 2, 0, sigma_diff)
     lb_sr_diff_eq_0     = norm.ppf(alpha / 2, 0, sigma_diff)
     ub_sr_diff_lte_0    = norm.ppf(1 - alpha, 0, sigma_diff)
-    p_sr_diff_eq_0      = p_sr_diff_lte_0 * 2
     p_sr_diff_lte_0     = 1 - norm.cdf(sr_diff / sigma_diff)
+    p_sr_diff_eq_0      = p_sr_diff_lte_0 * 2
 
     res                 = {
                             "p_eq_0":       p_sr_diff_eq_0,
