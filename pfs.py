@@ -115,7 +115,7 @@ def get_daily(
     res = pl.DataFrame(
                 {
                     "ts":       [ row[0] for row in combined ],
-                    "date":    [ date for date in dates ],
+                    "date":     [ date for date in dates ],
                     "price":    [ row[1] for row in combined ],
                     "qty":      [ row[2] for row in combined ],
                     "pos":      position,
@@ -132,6 +132,19 @@ def get_daily(
     if DEBUG == 2:
 
         print(f"{symbol:20}{sum(pnl):>15.2f}")
+        
+        '''
+        date        = "2024-03-22"
+        selected    = []
+
+        for i in range(len(dates)):
+
+            if date in dates[i]:
+
+                selected.append(pnl[i])
+
+        print(f"{symbol:20}{sum(selected):>15.2f}")
+        '''
 
     res = res.group_by("date", maintain_order = True).agg(
                     [ 
