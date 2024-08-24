@@ -471,14 +471,12 @@ if __name__ == "__main__":
 
         fig = go.Figure()
 
-        adjusted_returns        = returns * (spx_sigma / sigma)
-        adjusted_returns        = adjusted_returns - (mean(adjusted_returns) - spx_mu)
-        adjusted_cum_returns    = cumsum(adjusted_returns)
+        adjusted_spx = spx_ret * (sigma / spx_sigma)
 
         traces = [
             ( "trader", cum_ret, "#0000FF", "y1" ),
             ( "spx", spx_cum_ret, "#FF0000", "y1" ),
-            ( "scaled", adjusted_cum_returns, "#FF00FF", "y1" )
+            ( "adjusted_spx", adjusted_spx, "#FF00FF", "y1" )
         ]
 
         for trace in traces:
