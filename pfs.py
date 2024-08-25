@@ -32,7 +32,7 @@ pl.Config.set_tbl_rows(-1)
 pl.Config.set_tbl_cols(-1)
 
 
-# python pfs.py tydal_in America/New_York thinkorswim xxxxxx.xx 0
+# python pfs.py tydal_in America/New_York thinkorswim xxxxxx.xx:xxxxx.xx 0
 
 
 def get_daily(
@@ -304,26 +304,26 @@ def mc_drawdown(returns: array):
 
 if __name__ == "__main__":
 
-    t0              = time()
-    in_fn           = join(".", "csvs", f"{argv[1]}.csv")
-    tz              = argv[2]
-    parser          = PARSERS[argv[3]]
-    init_balance    = float(argv[4])
-    DEBUG           = int(argv[5])
-    in_rows         = parser.parse(in_fn, tz, None, 0)
-    in_rows         = [ row for row in in_rows if row[in_row.symbol] not in SKIP ]
-    start           = in_rows[0][in_row.ts].split("T")[0]
-    end             = in_rows[-1][in_row.ts].split("T")[0]
-    symbols         = sorted(set([ row[in_row.symbol] for row in in_rows ]))
-    SPX             = get_spx(start, end)
+    t0                  = time()
+    in_fn               = join(".", "csvs", f"{argv[1]}.csv")
+    tz                  = argv[2]
+    parser              = PARSERS[argv[3]]
+    init_balance, fees  = [ float(x) for x in argv[4].split(":") ]
+    DEBUG               = int(argv[5])
+    in_rows             = parser.parse(in_fn, tz, None, 0)
+    in_rows             = [ row for row in in_rows if row[in_row.symbol] not in SKIP ]
+    start               = in_rows[0][in_row.ts].split("T")[0]
+    end                 = in_rows[-1][in_row.ts].split("T")[0]
+    symbols             = sorted(set([ row[in_row.symbol] for row in in_rows ]))
+    SPX                 = get_spx(start, end)
 
     # get_spx() returns one additional day prior to the first trade date, 
     # for calculating SPX return on the first day.
     # dates are only used for labeling returns, so trim spx_dates[0]
 
-    dates           = list(SPX["datetime"])[1:]
-    spx_close       = SPX["close"]
-    pnls            = { date: [] for date in dates }
+    dates               = list(SPX["datetime"])[1:]
+    spx_close           = SPX["close"]
+    pnls                = { date: [] for date in dates }
 
     for symbol in symbols:
 
@@ -373,7 +373,8 @@ if __name__ == "__main__":
 
     # trader statistics
 
-    pnl                 =  [ sum(pnls[date]) for date in dates ]
+    avg_fee             =  fees / len(spx_pnl)
+    pnl                 =  [ sum(pnls[date]) - avg_fee for date in dates ]
     balance             =  cumsum([ init_balance ] + pnl)
     returns             =  array([ log(balance[i] / balance[i - 1]) for i in range(1, len(balance)) ])
     cum_ret             =  cumsum(returns)
@@ -456,8 +457,10 @@ if __name__ == "__main__":
     print("\ntotals")
     print("\n-----\n")
     print(f"{'initial balance':20}{init_balance:>15.2f}")
+    print(f"{'gross pnl':20}{balance[-1] - init_balance + fees:>15.2f}")
+    print(f"{'fees':20}{fees:>15.2f}")
+    print(f"{'net pnl':20}{balance[-1] - init_balance:>15.2f}")
     print(f"{'ending balance':20}{balance[-1]:>15.2f}")
-    print(f"{'pnl':20}{balance[-1] - init_balance:>15.2f}")
     print(f"{'return':20}{(balance[-1] / init_balance - 1) * 100:>15.2f}%")
     print("\n-----\n")
     print(f"{'summary statistics':20}{'trader':>15}{'spx':>15}\n")
@@ -465,6 +468,7 @@ if __name__ == "__main__":
     print(f"{'daily stdev:':20}{sigma * 100:>15.2f}%{spx_sigma * 100:>15.2f}%")
     print(f"{'annualized return:':20}{mu * 252 * 100:>15.2f}%{spx_mu * 252 * 100:>15.2f}%")
     print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>15.2f}%{spx_sigma * sqrt(252) * 100:>15.2f}%")
+    print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{spx_sharpe:>15.2f}")
     print(f"{'max drawdown:':20}{max_dd * 100:>15.2f}%{spx_max_dd * 100:>15.2f}%")
     print(f"{'avg. drawdown:':20}{mean_dd * 100:>15.2f}%{spx_mean_dd * 100:>15.2f}%")
     print(f"{'mc drawdown, p95:':20}{-p_95_h_dd * 100:>15.2f}%{'-':>15}")
@@ -474,7 +478,6 @@ if __name__ == "__main__":
     print(f"{'beta:':20} {b:>15.4f}{'-':>15}")
     print(f"{'correlation:':20} {corr:>15.4f}{'-':>15}")
     print(f"{'p(mean <= 0):':20} {mean_p_val:>15.2f}{'-':>15}")
-    print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{spx_sharpe:>15.2f}")
     print(f"{'p(sharpe == index):':20} {p_eq_0:>15.2f}{'-':>15}")
     print(f"{'p(sharpe <= index):':20} {p_inferior:>15.2f}{'-':>15}")
     print("\n")
