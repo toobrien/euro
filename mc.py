@@ -18,6 +18,7 @@ from    util                    import  get_sym_data, out_row
 Config.set_tbl_rows(-1)
 
 
+RFR                 = log(1 + 0.052) / 252
 MAX_PNL_CHART_LEN   = 100_000
 PERIODS_PER_YEAR    = 23 * 60 * 60 * 252
 N                   = 10_000
