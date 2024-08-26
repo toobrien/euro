@@ -2,6 +2,7 @@ from    config      import  FUT_DEFS
 from    datetime    import  datetime, timedelta
 import  polars      as      pl
 from    sys         import  path
+from    typing      import  List
 
 path.append(".")
 
@@ -19,6 +20,7 @@ def parse(
     in_fn:              str,
     tz:                 str,
     src:                str,
+    enabled:            List[str],
     return_sym_data:    bool = True
 ):
     
@@ -51,12 +53,18 @@ def parse(
         input.append(( instrument, entry_time, qty, entry_price ))
         input.append(( instrument, exit_time, qty * -1, exit_price ))
 
+    input = sorted([ row for row in input ], key = lambda r: r[1])
+
+    if "all" not in enabled:
+
+        input = [ row for row in input if row[0] in enabled ]
+
     if return_sym_data:
 
-        symbols     = set([ sym.split()[0] for sym in trades["Instrument"] ])
-        start       = trades["Entry time"][0].split("T")[0]
-        end         = trades["Exit time"][-1].split("T")[0]
+        start       = input[0][1].split("T")[0]
+        end         = input[-1][1].split("T")[0]
         end         = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+        symbols     = set([ row[0] for row in input ])
         sym_data    = get_sym_data(symbols, start, end, tz, src)
     
         return sym_data, input

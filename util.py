@@ -145,11 +145,7 @@ def get_sym_data(
 
     for symbol in symbols:
 
-        if symbol not in FUT_DEFS or not FUT_DEFS[symbol]["enabled"]:
-
-            continue
-
-        elif FUT_DEFS[symbol]["alias"]:
+        if symbol in FUT_DEFS and FUT_DEFS[symbol]["alias"]:
 
             symbol = FUT_DEFS[symbol]["alias"]
 

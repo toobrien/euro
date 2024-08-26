@@ -16,6 +16,7 @@ from    util                    import  get_sc_df, get_spx, in_row
 from    typing                  import  List
 
 
+ENABLED = "all"
 RFR     = log(1 + 0.052) / 252
 SKIP    = [ "GC" ]
 DEBUG   = 0
@@ -310,7 +311,7 @@ if __name__ == "__main__":
     parser              = PARSERS[argv[3]]
     init_balance, fees  = [ float(x) for x in argv[4].split(":") ]
     DEBUG               = int(argv[5])
-    in_rows             = parser.parse(in_fn, tz, None, 0)
+    in_rows             = parser.parse(in_fn, tz, None, ENABLED, 0)
     in_rows             = [ row for row in in_rows if row[in_row.symbol] not in SKIP ]
     start               = in_rows[0][in_row.ts].split("T")[0]
     end                 = in_rows[-1][in_row.ts].split("T")[0]

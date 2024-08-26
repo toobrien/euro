@@ -3,6 +3,7 @@ from datetime   import datetime, timedelta
 from enum       import IntEnum
 from polars     import col, Datetime, read_csv
 from sys        import path
+from typing     import List
 
 path.append(".")
 
@@ -33,6 +34,7 @@ def parse(
     in_fn:              str,
     tz:                 str,
     src:                str,
+    enabled:            List[str],
     return_sym_data:    bool = True
 ):
 
@@ -64,16 +66,18 @@ def parse(
         
         input.append((symbol, in_buy_ts, in_qty, in_buy_px))
         input.append((symbol, in_sell_ts, -in_qty, in_sell_px))
+    
+    input = sorted([ row for row in input if row[0] ], key = lambda r: r[1])
+
+    if "all" not in enabled:
+
+        input = [ row for row in input if row[0] in enabled ]
 
     if return_sym_data:
 
-        dates       = sorted(
-                        [ row[trade_row.boughtTimestamp].split("T")[0] for row in in_rows ] + 
-                        [ row[trade_row.soldTimestamp].split("T")[0] for row in in_rows ]
-                    )
-        start       = dates[0]
-        end         = (datetime.strptime(dates[-1], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
-        symbols     = [ sym[:-2] for sym in list(trades["symbol"].unique()) ]
+        start       = input[0][1].split("T")[0]
+        end         = (datetime.strptime(input[-1][1].split("T")[0], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+        symbols     = set([ row[0] for row in input ])
         sym_data    = get_sym_data(symbols, start, end, tz, src)
 
         return sym_data, input

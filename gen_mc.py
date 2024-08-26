@@ -9,7 +9,7 @@ from    util    import  in_row
 
 # python gen_mc.py euro_in sc Europe/Berlin tradovate 1
 
-
+ENABLED = [ "NVDA" ]
 PARSERS = { 
             "tradovate":    tradovate,
             "tradovate_tv": tradovate_tv,
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     tz              = argv[3]
     parser          = PARSERS[argv[4]]
     debug           = int(argv[5])
-    sym_data, input = parser.parse(in_fn, tz, src, 1)
+    sym_data, input = parser.parse(in_fn, tz, src, ENABLED, 1)
     mask            = []
 
     if input:
