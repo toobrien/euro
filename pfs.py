@@ -15,17 +15,17 @@ from    util                    import  get_sc_df, get_benchmark, in_row, sharpe
 from    typing                  import  List
 
 
-ENABLED = "all"
-RFR     = log(1 + 0.052) / 252
-SKIP    = [ "GC" ]
-DEBUG   = 0
-N       = 10_000
-PARSERS = { 
-            "tradovate":    tradovate,
-            "tradovate_tv": tradovate_tv,
-            "thinkorswim":  thinkorswim,
-            "ninjatrader":  ninjatrader
-        }
+BENCHMARK   = "SPX"
+RFR         = log(1 + 0.052) / 252
+SKIP        = [ "GC" ]
+DEBUG       = 0
+N           = 10_000
+PARSERS     = { 
+                "tradovate":    tradovate,
+                "tradovate_tv": tradovate_tv,
+                "thinkorswim":  thinkorswim,
+                "ninjatrader":  ninjatrader
+            }
 
 
 pl.Config.set_tbl_rows(-1)
@@ -264,14 +264,14 @@ if __name__ == "__main__":
     start               = in_rows[0][in_row.ts].split("T")[0]
     end                 = in_rows[-1][in_row.ts].split("T")[0]
     symbols             = sorted(set([ row[in_row.symbol] for row in in_rows ]))
-    SPX                 = get_benchmark("SPX", start, end, tz)
+    BENCH               = get_benchmark(BENCHMARK, start, end, tz)
 
-    # get_spx() returns one additional day prior to the first trade date, 
-    # for calculating SPX return on the first day.
-    # dates are only used for labeling returns, so trim spx_dates[0]
+    # get_benchmark() returns one additional day prior to the first trade date, 
+    # for calculating the benchmark return on the first day.
+    # dates are only used for labeling returns, so trim benchmark_dates[0]
 
-    dates               = list(SPX["datetime"])[1:]
-    spx_close           = SPX["close"]
+    dates               = list(BENCH["datetime"])[1:]
+    bench_close           = BENCH["close"]
     pnls                = { date: [] for date in dates }
 
     for symbol in symbols:
@@ -306,23 +306,23 @@ if __name__ == "__main__":
     
     # index statistics
 
-    spx_pnl             =  diff(spx_close)
-    spx_ret             =  array([ log(spx_close[i] / spx_close[i - 1]) for i in range(1, len(spx_close)) ])
-    spx_cum_ret         =  cumsum(spx_ret)
-    spx_mu              =  mean(spx_ret)
-    spx_sigma           =  std(spx_ret)
-    spx_dd              =  [ spx_cum_ret[i] - max(spx_cum_ret[0:i + 1]) for i in range(len(spx_cum_ret)) ]
-    spx_max_dd          =  min(spx_dd)
-    spx_mean_dd         =  mean(spx_dd)
-    spx_mar_ratio       =  (spx_mu * 252) / abs(spx_max_dd)
-    spx_gross_profit    =  sum([ i for i in spx_pnl if i > 0 ])
-    spx_gross_loss      =  sum([ abs(i) for i in spx_pnl if i < 0 ])
-    spx_profit_factor   =  spx_gross_profit / spx_gross_loss
-    spx_sharpe          =  spx_mu / spx_sigma * sqrt(252)
+    bench_pnl             =  diff(bench_close)
+    bench_ret             =  array([ log(bench_close[i] / bench_close[i - 1]) for i in range(1, len(bench_close)) ])
+    bench_cum_ret         =  cumsum(bench_ret)
+    bench_mu              =  mean(bench_ret)
+    bench_sigma           =  std(bench_ret)
+    bench_dd              =  [ bench_cum_ret[i] - max(bench_cum_ret[0:i + 1]) for i in range(len(bench_cum_ret)) ]
+    bench_max_dd          =  min(bench_dd)
+    bench_mean_dd         =  mean(bench_dd)
+    bench_mar_ratio       =  (bench_mu * 252) / abs(bench_max_dd)
+    bench_gross_profit    =  sum([ i for i in bench_pnl if i > 0 ])
+    bench_gross_loss      =  sum([ abs(i) for i in bench_pnl if i < 0 ])
+    bench_profit_factor   =  bench_gross_profit / bench_gross_loss
+    bench_sharpe          =  bench_mu / bench_sigma * sqrt(252)
 
     # trader statistics
 
-    avg_fee             =  fees / len(spx_pnl)
+    avg_fee             =  fees / len(bench_pnl)
     pnl                 =  [ sum(pnls[date]) - avg_fee for date in dates ]
     balance             =  cumsum([ init_balance ] + pnl)
     returns             =  array([ log(balance[i] / balance[i - 1]) for i in range(1, len(balance)) ])
@@ -331,7 +331,7 @@ if __name__ == "__main__":
     sigma               =  std(returns)
     sharpe              =  mu / sigma * sqrt(252)
     mean_p_val          =  mean_bootstrap(returns)
-    sharpe_res          =  sharpe_htest(spx_ret, returns, RFR, 0.05)
+    sharpe_res          =  sharpe_htest(bench_ret, returns, RFR, 0.05)
     p_eq_0              =  sharpe_res["p_eq_0"]
     p_inferior          =  sharpe_res["p_b_lt_a"]
     sr_diff             =  sharpe_res["sr_diff"]
@@ -349,13 +349,13 @@ if __name__ == "__main__":
 
     model   =  LinearRegression()
     
-    model.fit(spx_ret.reshape(-1, 1), returns)
+    model.fit(bench_ret.reshape(-1, 1), returns)
 
-    X           = arange(min(spx_ret), max(spx_ret), step = 0.00001)
+    X           = arange(min(bench_ret), max(bench_ret), step = 0.00001)
     Y           = model.predict(X.reshape(-1, 1))
     b           = model.coef_[0]
     a           = model.intercept_
-    corr        = corrcoef(spx_ret, returns)[0, 1]
+    corr        = corrcoef(bench_ret, returns)[0, 1]
 
     pass
 
@@ -365,7 +365,7 @@ if __name__ == "__main__":
         print(f"{'beta':20}{b:0.4f}")
 
         print(f"dates[0] = {dates[0]}")
-        print(f"ln({spx_close[1]:0.2f}, {spx_close[0]:0.2f}) = {log(spx_close[1] / spx_close[0]):0.4f}, ref = {spx_ret[0]:0.4f}")
+        print(f"ln({bench_close[1]:0.2f}, {bench_close[0]:0.2f}) = {log(bench_close[1] / bench_close[0]):0.4f}, ref = {bench_ret[0]:0.4f}")
         print(f"ln({balance[1]:0.2f} / {balance[0]:0.2f})    = {log(balance[1] / balance[0]):0.4f}, ref = {returns[0]:0.4f}")
 
         fig = go.Figure()
@@ -373,7 +373,7 @@ if __name__ == "__main__":
         fig.add_trace(
             go.Scatter(
                 {
-                    "x":    spx_ret,
+                    "x":    bench_ret,
                     "y":    returns,
                     "mode": "markers",
                     "name": "returns",
@@ -412,17 +412,17 @@ if __name__ == "__main__":
     print(f"{'ending balance':20}{balance[-1]:>15.2f}")
     print(f"{'return':20}{(balance[-1] / init_balance - 1) * 100:>15.2f}%")
     print("\n-----\n")
-    print(f"{'summary statistics':20}{'trader':>15}{'spx':>15}\n")
-    print(f"{'daily return:':20}{mu * 100:>15.2f}%{spx_mu * 100:>15.2f}%")
-    print(f"{'daily stdev:':20}{sigma * 100:>15.2f}%{spx_sigma * 100:>15.2f}%")
-    print(f"{'annualized return:':20}{mu * 252 * 100:>15.2f}%{spx_mu * 252 * 100:>15.2f}%")
-    print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>15.2f}%{spx_sigma * sqrt(252) * 100:>15.2f}%")
-    print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{spx_sharpe:>15.2f}")
-    print(f"{'max drawdown:':20}{max_dd * 100:>15.2f}%{spx_max_dd * 100:>15.2f}%")
-    print(f"{'avg. drawdown:':20}{mean_dd * 100:>15.2f}%{spx_mean_dd * 100:>15.2f}%")
+    print(f"{'summary statistics':20}{'trader':>15}{f'{BENCHMARK}':>15}\n")
+    print(f"{'daily return:':20}{mu * 100:>15.2f}%{bench_mu * 100:>15.2f}%")
+    print(f"{'daily stdev:':20}{sigma * 100:>15.2f}%{bench_sigma * 100:>15.2f}%")
+    print(f"{'annualized return:':20}{mu * 252 * 100:>15.2f}%{bench_mu * 252 * 100:>15.2f}%")
+    print(f"{'annualized stdev:':20}{sigma * sqrt(252) * 100:>15.2f}%{bench_sigma * sqrt(252) * 100:>15.2f}%")
+    print(f"{'sharpe ratio:':20} {sharpe:>15.2f}{bench_sharpe:>15.2f}")
+    print(f"{'max drawdown:':20}{max_dd * 100:>15.2f}%{bench_max_dd * 100:>15.2f}%")
+    print(f"{'avg. drawdown:':20}{mean_dd * 100:>15.2f}%{bench_mean_dd * 100:>15.2f}%")
     print(f"{'mc drawdown, p95:':20}{-p_95_h_dd * 100:>15.2f}%{'-':>15}")
-    print(f"{'MAR ratio:':20} {mar_ratio:>15.2f}{spx_mar_ratio:>15.2f}")
-    print(f"{'profit factor:':20} {profit_factor:>15.2f}{spx_profit_factor:>15.2f}")
+    print(f"{'MAR ratio:':20} {mar_ratio:>15.2f}{bench_mar_ratio:>15.2f}")
+    print(f"{'profit factor:':20} {profit_factor:>15.2f}{bench_profit_factor:>15.2f}")
     print(f"{'alpha:':20} {a:>15.4f}{'-':>15}")
     print(f"{'beta:':20} {b:>15.4f}{'-':>15}")
     print(f"{'correlation:':20} {corr:>15.4f}{'-':>15}")
@@ -435,18 +435,18 @@ if __name__ == "__main__":
 
         fig = go.Figure()
 
-        adj_spx     = spx_ret * (sigma / spx_sigma)
-        adj_mu      = mean(adj_spx)
-        adj_sigma   = std(adj_spx)
-        adj_sharpe  = adj_mu / adj_sigma * sqrt(252)
-        adj_spx_cum = cumsum(adj_spx)
+        adj_bench       = bench_ret * (sigma / bench_sigma)
+        adj_mu          = mean(adj_bench)
+        adj_sigma       = std(adj_bench)
+        adj_sharpe      = adj_mu / adj_sigma * sqrt(252)
+        adj_bench_cum   = cumsum(adj_bench)
         
         pass
 
         traces = [
             ( "trader", cum_ret, "#0000FF", "y1" ),
-            ( "spx", spx_cum_ret, "#FF0000", "y1" ),
-            ( "adjusted_spx", adj_spx_cum, "#FF00FF", "y1" )
+            ( f"{BENCHMARK}", bench_cum_ret, "#FF0000", "y1" ),
+            ( f"adjusted {BENCHMARK}", adj_bench_cum, "#FF00FF", "y1" )
         ]
 
         for trace in traces:
