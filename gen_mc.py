@@ -10,7 +10,7 @@ from    util        import get_sym_data, in_row
 
 # python gen_mc.py euro_in sc Europe/Berlin tradovate 1
 
-ENABLED = [ "NQ" ]
+ENABLED = [ "TSLA" ]
 PARSERS = { 
             "tradovate":    tradovate,
             "tradovate_tv": tradovate_tv,

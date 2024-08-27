@@ -32,11 +32,19 @@ def parse(in_fn: str):
         desc    = row[3].split()
         err     = False
 
+
+
         try:
 
             qty     = float(desc[1].replace(",", ""))
             symbol  = desc[2]
             price   = float(desc[3][1:])
+
+            if "CALL" in row[3] or "PUT" in row[3]:
+
+                # option trades not supported
+
+                continue
 
             if "/" in symbol:
 

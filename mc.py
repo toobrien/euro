@@ -5,7 +5,7 @@ from    os.path                 import  join
 from    math                    import  sqrt
 from    numpy                   import  array, cumsum, diff, log, mean, nonzero, std, zeros
 from    numpy.random            import  default_rng
-from    polars                  import  DataFrame, col, Config, read_csv, Series
+from    polars                  import  DataFrame, col, Config, read_csv
 import  plotly.graph_objects    as      go
 from    sys                     import  argv
 from    time                    import  time
@@ -53,12 +53,27 @@ if __name__ == "__main__":
 
         position[row[out_row.idx]:] += row[out_row.pos_chg]
 
+    if debug == 1:
+
+        # check for invalid prices
+
+        ts      = sym_data[symbol]["ts"][1:]
+        prices  = prices[1:]
+
+        for i in range(len(prices)):
+
+            if prices[i] <= 0:
+
+                print(ts[i], i, prices[i])
+
+        exit()
+
     # correct floating point error
 
     position    = [ i if abs(i) > 1e-10 else 0 for i in position ]
     position_r  = [ pos / abs(pos) if pos != 0 else 0 for pos in position ]
 
-    if debug == 1:
+    if debug == 2:
 
         # set i and j to sample trade start idxs from outfile
 
