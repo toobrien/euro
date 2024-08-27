@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     for row in rows:
 
-        position[row[out_row.idx]:]     += row[out_row.pos_chg]
+        position[row[out_row.idx]:] += row[out_row.pos_chg]
 
     # correct floating point error
 
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     print(f"{'trader mean:':20}{mu_sec * 100:>19.9f}%")
     print(f"{'sampling mean:':20}{mean(sampling_dist) * 100:>19.9f}%")
     print(f"{'sampling stdev:':20}{std(sampling_dist) * 100:>19.9f}%")
-    print(f"{f'p(unskilled):':20}{p_val:>19.2f}")
+    print(f"{f'p(not predictive):':20}{p_val:>19.2f}")
     
     print("\nsharpe test\n")
 
