@@ -3,16 +3,15 @@ from    bisect                  import  bisect_left
 from    config                  import  FUT_DEFS
 from    os.path                 import  join
 from    math                    import  log
-from    numpy                   import  arange, array, corrcoef, cumsum, diff, mean, std, sqrt, var
+from    numpy                   import  arange, array, corrcoef, cumsum, diff, mean, std, sqrt
 from    numpy.random            import  choice
 from    parsers                 import  ninjatrader, tradovate, tradovate_tv, thinkorswim
 import  plotly.graph_objects    as      go
 import  polars                  as      pl
-from    scipy.stats             import  norm
 from    sklearn.linear_model    import  LinearRegression
 from    sys                     import  argv
 from    time                    import  time
-from    util                    import  get_sc_df, get_spx, in_row
+from    util                    import  get_sc_df, get_benchmark, in_row, sharpe_htest
 from    typing                  import  List
 
 
@@ -74,7 +73,7 @@ def get_daily(
     trade_px    = [ row[in_row.price] for row in rows ]
     trade_qty   = [ row[in_row.qty] for row in rows ]
     trades      = list(zip(trade_ts, trade_px, trade_qty))
-    settles     = list(zip(df["ts"], df["close"], [ 0 for i in range(df.height) ]))
+    settles     = list(zip(df["ts"], df["close"], [ 0 for _ in range(df.height) ]))
     
     start       = bisect_left(settles, rows[0][in_row.ts], key = lambda r: r[0]) - 1
     end         = bisect_left(settles, rows[-1][in_row.ts], key = lambda r: r[0]) + 1
@@ -231,57 +230,6 @@ def sr_bootstrap(returns: array):
     return res
 
 
-def sharpe_htest(a: array, b: array, rfr: float, alpha: float):
-
-    T               = a.shape[0]
-
-    mu_a            = mean(a)
-    var_a           = var(a, ddof = 1)
-    sigma_a         = sqrt(var_a)
-    sr_a            = (mu_a - rfr) / sigma_a
-    skew_a          = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(a**3) - 3 * sum(a) * sum(a**2) + 2 * sum(a)**3 / T) / ((T - 1) * (T - 2)))) / sigma_a**3
-    kurt_a          = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(a**4) - 4 * (T**2 + T) * sum(a**3) * sum(a) - 3 * (T**2 - T) * sum(a**2)**2 + 12 * T * sum(a**2) * sum(a)**2 - 6 * sum(a)**4) / (var_a**2 * T * (T - 1) * (T - 2) * (T - 3)) )
-
-    mu_b            = mean(b)
-    var_b           = var(b, ddof = 1)
-    sigma_b         = sqrt(var_b)
-    sr_b            = (mu_b - rfr) / sigma_b
-    skew_b          = ((T - 2) / sqrt(T * (T - 1))) * (((T * sum(b**3) - 3 * sum(b) * sum(b**2) + 2 * sum(b)**3 / T) / ((T - 1) * (T - 2)))) / sigma_b**3
-    kurt_b          = 3 * (T - 1) / (T + 1) + (((T - 2) * (T - 3)) / ((T + 1) * (T - 1))) * (((T**3 + T**2) * sum(b**4) - 4 * (T**2 + T) * sum(b**3) * sum(b) - 3 * (T**2 - T) * sum(b**2)**2 + 12 * T * sum(b**2) * sum(b)**2 - 6 * sum(b)**4) / (var_b**2 * T * (T - 1) * (T - 2) * (T - 3)))
-
-    #corr_ab         = corrcoef(a, b, ddof = 1)[0, 1] # ddof deprecated, no effect
-    corr_ab         = corrcoef(a, b)[0, 1]
-    u_2a_2b         = (-3 * sum(b)**2 * sum(a)**2 + T * sum(b**2) * sum(a)**2 + 4 * T * sum(b) * sum(a) * sum(a * b) - 2 * (2 * T - 3) * sum(a * b)**2 - 2 * (T**2 - 2 * T + 3) * sum(a) * sum(a * b**2) + sum(b)**2 * sum(a**2) - (2 * T - 3) * sum(b**2) * sum(a**2) - 2 * (T**2 - 2 * T + 3) * sum(b) * sum(a**2 * b) + T * (T**2 - 2 * T + 3) * sum(a**2 * b**2)) / (T * (T - 1) * (T - 2) * (T - 3))
-    u_1a_2b         = (2 * sum(b)**2 * sum(a) - T * sum(b**2) * sum(a) - 2 * sum(b) * sum(a * b) + T**2 * sum(a * b**2)) / (T * (T - 1) * (T - 2))
-    u_1b_2a         = (2 * sum(a)**2 * sum(b) - T * sum(a**2) * sum(b) - 2 * sum(a) * sum(a * b) + T**2 * sum(a**2 * b)) / (T * (T - 1) * (T - 2))
-    var_sr_a        = 1 + sr_a**2 / 4 * (kurt_a - 1) - sr_a * skew_a
-    var_sr_b        = 1 + sr_b**2 / 4 * (kurt_b - 1) - sr_b * skew_b
-    cov_sr_ab       = (
-                        corr_ab + (sr_a * sr_b / 4) * (u_2a_2b / (var_a * var_b) - 1) -
-                        0.5 * sr_a * u_1b_2a / (sigma_b * var_a) - 
-                        0.5 * sr_b * u_1a_2b / (sigma_a * var_b)
-                    )
-    var_diff        = var_sr_a + var_sr_b - 2 * cov_sr_ab
-    sigma_diff      = sqrt(var_diff / (T - 1))
-    sr_a_bc         = sr_a / (1 + 0.25 * (kurt_a - 1) / T)
-    sr_b_bc         = sr_b / (1 + 0.25 * (kurt_b - 1) / T)
-    sr_diff         = sr_b_bc - sr_a_bc
-
-    ub_sr_diff_eq_0     = norm.ppf(1 - alpha / 2, 0, sigma_diff)
-    lb_sr_diff_eq_0     = norm.ppf(alpha / 2, 0, sigma_diff)
-    ub_sr_diff_lte_0    = norm.ppf(1 - alpha, 0, sigma_diff)
-    p_sr_diff_lte_0     = 1 - norm.cdf(sr_diff / sigma_diff)
-    p_sr_diff_eq_0      = p_sr_diff_lte_0 * 2
-
-    res                 = {
-                            "p_eq_0":       p_sr_diff_eq_0,
-                            "p_b_lt_a":     p_sr_diff_lte_0,
-                            "sr_diff":      sr_diff
-                        }
-
-    return res
-
-
 def mc_drawdown(returns: array):
 
     samples   = [ 
@@ -311,12 +259,12 @@ if __name__ == "__main__":
     parser              = PARSERS[argv[3]]
     init_balance, fees  = [ float(x) for x in argv[4].split(":") ]
     DEBUG               = int(argv[5])
-    in_rows             = parser.parse(in_fn, tz, None, ENABLED, 0)
+    in_rows             = parser.parse(in_fn)
     in_rows             = [ row for row in in_rows if row[in_row.symbol] not in SKIP ]
     start               = in_rows[0][in_row.ts].split("T")[0]
     end                 = in_rows[-1][in_row.ts].split("T")[0]
     symbols             = sorted(set([ row[in_row.symbol] for row in in_rows ]))
-    SPX                 = get_spx(start, end)
+    SPX                 = get_benchmark("SPX", start, end, tz)
 
     # get_spx() returns one additional day prior to the first trade date, 
     # for calculating SPX return on the first day.

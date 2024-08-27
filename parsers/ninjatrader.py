@@ -1,13 +1,10 @@
 from    config      import  FUT_DEFS
-from    datetime    import  datetime, timedelta
 import  polars      as      pl
 from    sys         import  path
-from    typing      import  List
 
 path.append(".")
 
 from    config      import  TS_FMT
-from    util        import get_sym_data
 
 pl.Config.set_tbl_rows(50)
 pl.Config.set_tbl_cols(-1)
@@ -16,13 +13,7 @@ pl.Config.set_tbl_cols(-1)
 NT_DT_FMT = "%m/%d/%Y %I:%M:%S %p"
 
 
-def parse(
-    in_fn:              str,
-    tz:                 str,
-    src:                str,
-    enabled:            List[str],
-    return_sym_data:    bool = True
-):
+def parse(in_fn: str):
     
     input   = []
     trades  = pl.read_csv(in_fn)
@@ -55,20 +46,4 @@ def parse(
 
     input = sorted([ row for row in input ], key = lambda r: r[1])
 
-    if "all" not in enabled:
-
-        input = [ row for row in input if row[0] in enabled ]
-
-    if return_sym_data:
-
-        start       = input[0][1].split("T")[0]
-        end         = input[-1][1].split("T")[0]
-        end         = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
-        symbols     = set([ row[0] for row in input ])
-        sym_data    = get_sym_data(symbols, start, end, tz, src)
-    
-        return sym_data, input
-
-    else:
-
-        return input
+    return input

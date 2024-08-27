@@ -1,13 +1,6 @@
 from config     import TS_FMT, FUT_DEFS
-from datetime   import datetime, timedelta
 from enum       import IntEnum
 from polars     import col, Datetime, read_csv
-from sys        import path
-from typing     import List
-
-path.append(".")
-
-from util       import get_sym_data
 
 
 class trade_row(IntEnum):
@@ -30,13 +23,7 @@ class trade_row(IntEnum):
 TV_DT_FMT = "%m/%d/%Y %H:%M:%S" 
 
 
-def parse(
-    in_fn:              str,
-    tz:                 str,
-    src:                str,
-    enabled:            List[str],
-    return_sym_data:    bool = True
-):
+def parse(in_fn: str):
 
     trades      = read_csv(in_fn)
     trades      = trades.with_columns(
@@ -69,19 +56,4 @@ def parse(
     
     input = sorted([ row for row in input if row[0] ], key = lambda r: r[1])
 
-    if "all" not in enabled:
-
-        input = [ row for row in input if row[0] in enabled ]
-
-    if return_sym_data:
-
-        start       = input[0][1].split("T")[0]
-        end         = (datetime.strptime(input[-1][1].split("T")[0], "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
-        symbols     = set([ row[0] for row in input ])
-        sym_data    = get_sym_data(symbols, start, end, tz, src)
-
-        return sym_data, input
-    
-    else:
-
-        return input
+    return input

@@ -1,15 +1,16 @@
-from    bisect  import  bisect_left
-from    os.path import  join
-from    parsers import  ninjatrader, tradovate, tradovate_tv, thinkorswim
-from    polars  import  Config, DataFrame
-from    sys     import  argv
-from    time    import  time
-from    util    import  in_row
+from    bisect      import bisect_left
+from    datetime    import datetime, timedelta
+from    os.path     import join
+from    parsers     import ninjatrader, tradovate, tradovate_tv, thinkorswim
+from    polars      import Config, DataFrame
+from    sys         import argv
+from    time        import time
+from    util        import get_sym_data, in_row
 
 
 # python gen_mc.py euro_in sc Europe/Berlin tradovate 1
 
-ENABLED = [ "NVDA" ]
+ENABLED = [ "NQ" ]
 PARSERS = { 
             "tradovate":    tradovate,
             "tradovate_tv": tradovate_tv,
@@ -24,45 +25,59 @@ Config.set_tbl_rows(-1)
 
 if __name__ == "__main__":
 
-    t0              = time()
-    in_fn           = join(".", "csvs", f"{argv[1]}.csv")
-    out_fn          = join(".", "csvs", f"{argv[1][:-3]}_out.csv")
-    src             = argv[2]
-    tz              = argv[3]
-    parser          = PARSERS[argv[4]]
-    debug           = int(argv[5])
-    sym_data, input = parser.parse(in_fn, tz, src, ENABLED, 1)
-    mask            = []
+    t0      = time()
+    in_fn   = join(".", "csvs", f"{argv[1]}.csv")
+    out_fn  = join(".", "csvs", f"{argv[1][:-3]}_out.csv")
+    src     = argv[2]
+    tz      = argv[3]
+    parser  = PARSERS[argv[4]]
+    debug   = int(argv[5])
+    input   = parser.parse(in_fn)
 
-    if input:
+    if not input:
 
-        input   = sorted(input, key = lambda r: r[1])
-        output  = []
+        print("exiting: no input")
 
-        for row in input:
+        exit()
 
-            symbol = row[in_row.symbol]
+    output      = []
+    input       = sorted(input, key = lambda r: r[in_row.ts])
+    input       = [ row for row in input if row[in_row.symbol] in ENABLED ]
+    start       = input[0][in_row.ts].split("T")[0]
+    end         = input[-1][in_row.ts].split("T")[0]
+    end         = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+    symbols     = set([ row[0] for row in input ])
+    sym_data    = get_sym_data(symbols, "0000", "9999", tz, src)
+    
+    for symbol in symbols:
 
-            if symbol not in sym_data:
+        # trim and fit to available data
 
-                mask.append(0)
+        data            = sym_data[symbol]
+        sym_rows        = [ row for row in input if row[in_row.symbol] == symbol ]
+        trade_ts        = [ row[in_row.ts] for row in sym_rows ]
+        data_ts         = data["ts"]
+        data_start      = data_ts[0]
+        data_end        = data["ts"][-1]
+        i               = bisect_left(trade_ts, data_start)
+        j               = bisect_left(trade_ts, data_end)
+        sym_rows        = sym_rows[i:j]
+        trimmed_start   = sym_rows[0][in_row.ts].split("T")[0]
+        trimmed_end     = sym_rows[-1][in_row.ts].split("T")[0]
+        trimmed_end     = (datetime.strptime(trimmed_end, "%Y-%m-%d") + timedelta(days = 1)).strftime("%Y-%m-%d")
+        i_              = bisect_left(data_ts, trimmed_start)
+        j_              = bisect_left(data_ts, trimmed_end)
+        
+        for key, val in data.items():
 
-                continue
+            data[key] = val[i_:j_]
 
-            ts      = sym_data[symbol]["ts"]
+        for row in sym_rows:
+
+            ts      = data["ts"]
             qty     = row[in_row.qty]
-            px      = sym_data[symbol]["close"]
+            px      = data["close"]
             in_ts   = row[in_row.ts]
-            
-
-            if in_ts < ts[0] or in_ts > ts[-1]:
-
-                mask.append(0)
-
-                continue
-            
-            mask.append(1)
-            
             out_idx = bisect_left(ts, in_ts)
             out_ts  = ts[out_idx]
             in_px   = row[in_row.price]
@@ -70,17 +85,18 @@ if __name__ == "__main__":
 
             output.append(( symbol, out_ts, out_idx, qty, in_px, out_px ))
 
-        with open(out_fn, "w") as fd:
+    output = sorted(output, key = lambda r: r[in_row.ts])
 
-            fd.write("symbol,ts,idx,pos_chg,in_price,out_price\n")
+    with open(out_fn, "w") as fd:
 
-            for line in output:
+        fd.write("symbol,ts,idx,pos_chg,in_price,out_price\n")
 
-                fd.write(",".join([ str(i) for i in line ]) + "\n")
+        for line in output:
+
+            fd.write(",".join([ str(i) for i in line ]) + "\n")
 
     if debug:
 
-        input       = [ input[i] for i in range(len(input)) if mask[i] ]
         debug_fn    = f"{argv[1][:-3]}_debug.csv"
         df_debug    = DataFrame(
                         {
