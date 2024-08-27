@@ -239,7 +239,7 @@ if __name__ == "__main__":
             )
         )
     
-    fig.update_layout(title = f"{symbol} daily unweighted returns")
+    fig.update_layout(title = f"{symbol} returns (daily, unweighted)")
     fig.show()
 
     # monte carlo permutation
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     print(f"{'trader mean:':20}{mu_sec * 100:>19.9f}%")
     print(f"{'sampling mean:':20}{mean(sampling_dist) * 100:>19.9f}%")
     print(f"{'sampling stdev:':20}{std(sampling_dist) * 100:>19.9f}%")
-    print(f"{f'p(r <= 0):':20}{p_val:>19.2f}")
+    print(f"{f'p(unskilled):':20}{p_val:>19.2f}")
     
     print("\nsharpe test\n")
 
