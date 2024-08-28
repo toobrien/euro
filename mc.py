@@ -238,6 +238,8 @@ if __name__ == "__main__":
 
     t1 = time()
 
+    print("\n")
+
     for i in range(N):
 
         rng.shuffle(logs)
@@ -246,10 +248,10 @@ if __name__ == "__main__":
         mu_i    = mean(r_)
         
         sampling_dist.append(mu_i)
-
-        if i % 100 == 0:
             
-            print(f"iter {i}/{N}, {time() - t1:0.1f}s\r")
+        print(f"iter {i}/{N}, {time() - t1:0.1f}s", end = "\r")
+
+    print("\n")
 
     fig = go.Figure()
 
