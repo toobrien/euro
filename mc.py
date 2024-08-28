@@ -206,7 +206,7 @@ if __name__ == "__main__":
 
     traces = [
         ( cumsum(trader_ret), "trader", "#0000FF" ),
-        ( cumsum(trader_mu), f"{symbol}", "#FF0000" ),
+        ( cumsum(bench_ret), f"{symbol}", "#FF0000" ),
         ( cumsum(adjusted_ret), f"{symbol} (adjusted)", "#FF00FF" )
     ]
 
