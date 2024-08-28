@@ -1,6 +1,7 @@
 tradovate:
 
 
+
 ninjatrader:
 
 1. Click "trade performance" under the "new" tab in the Ninjatrader dashboard.
@@ -22,4 +23,8 @@ ninjatrader:
 8. Right click and select "export" to export the file as CSV.
 
 tradingview:
+
+
+
 thinkorswim:
+

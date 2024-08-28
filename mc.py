@@ -119,8 +119,8 @@ if __name__ == "__main__":
 
     # remaining statistics
 
-    trader_mu       = trader_ret.mean()
-    trader_sig      = trader_ret.std()
+    trader_mu       = mean(trader_ret)
+    trader_sig      = std(trader_ret)
     trader_sharpe   = trader_mu / trader_sig * sqrt(252)
     bench_mu        = mean(bench_ret)
     bench_sig       = std(bench_ret)
@@ -243,11 +243,8 @@ if __name__ == "__main__":
     for i in range(N):
 
         rng.shuffle(logs)
-
-        r_      = add.reduceat(position_r * logs, idx)
-        mu_i    = mean(r_)
         
-        sampling_dist.append(mu_i)
+        sampling_dist.append(mean(add.reduceat(logs * position_r, idx)))
             
         print(f"iter {i}/{N}, {time() - t1:0.1f}s", end = "\r")
 
@@ -268,9 +265,9 @@ if __name__ == "__main__":
 
     print(f"{'num samples':20}{N:>20}")
     print(f"{'return period:':20}{'1 second':>20}")
-    print(f"{'trader mean:':20}{trader_mu * 100:>19.9f}%")
-    print(f"{'sampling mean:':20}{mean(sampling_dist) * 100:>19.9f}%")
-    print(f"{'sampling stdev:':20}{std(sampling_dist) * 100:>19.9f}%")
+    print(f"{'trader mean:':20}{trader_mu * 100:>19.2f}%")
+    print(f"{'sampling mean:':20}{mean(sampling_dist) * 100:>19.2f}%")
+    print(f"{'sampling stdev:':20}{std(sampling_dist) * 100:>19.2f}%")
     print(f"{f'p(not predictive):':20}{p_val:>19.2f}")
     
     print("\nsharpe test\n")
