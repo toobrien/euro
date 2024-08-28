@@ -3,7 +3,7 @@ from    bisect                  import  bisect_left
 from    datetime                import  datetime, timedelta
 from    os.path                 import  join
 from    math                    import  sqrt
-from    numpy                   import  array, cumsum, diff, log, mean, nonzero, std, zeros
+from    numpy                   import  add, array, cumsum, diff, log, mean, nonzero, std, zeros
 from    numpy.random            import  default_rng
 from    polars                  import  DataFrame, col, Config, read_csv
 import  plotly.graph_objects    as      go
@@ -98,65 +98,34 @@ if __name__ == "__main__":
         exit()
     
     ret             = logs * position_r
-    pnls            = chgs * position
-    t_pnl_sec       = sum(pnls)
-    sec_total       = cumsum(ret)[-1]
-    mu_sec          = mean(ret)
-    sigma_sec       = std(ret)
-    sharpe_sec      = mu_sec / sigma_sec * sqrt(PERIODS_PER_YEAR)
-    date            = [ t.split("T")[0] for t in sym_data[symbol]["ts"] ]
-    day_df          = DataFrame({ "date": date[1:], "pnl": pnls, "return (%)": ret })
-    day_df          = day_df.group_by("date", maintain_order = True).agg(
-                        [ 
-                            col("pnl").sum().alias("pnl"),
-                            (col("return (%)").sum()).alias("return (%)"),
-                        ]
-                    )
-    day_df          = day_df.with_columns(col("pnl").cum_sum().alias("pnl_cum"))
-    day_df          = day_df.with_columns(col("return (%)").cum_sum().alias("return_cum (%)"))
-
-    # align trader and benchmark returns by date (accounting for weekends, holidays)
-
+    pnl             = chgs * position
     benchmark       = get_benchmark(symbol, start, end, tz)
-    bench_rets      = diff(benchmark["close"].log())
-    bench_days      = [ dt.split("T")[0] for dt in benchmark["datetime"] ][1:]
-    trader_days     = array(day_df["date"])
-    trader_pnls     = array(day_df["pnl"])
-    trader_rets     = array(day_df["return (%)"])
-    matched_rets    = array([ 0. for _ in bench_days ])
-    matched_pnls    = array([ 0. for _ in bench_days ])
-
-    for i in range(len(trader_days)):
-
-        date            =  trader_days[i]
-        j               =  bisect_left(bench_days, date)
-        matched_pnls[j] += trader_pnls[i]
-        matched_rets[j] += trader_rets[i]
-
-    # fix dataframe
-
-    day_df = DataFrame(
-                {
-                    "date":                         bench_days,
-                    "trader pnl":                   matched_pnls,
-                    "trader pnl (cum)":             cumsum(matched_pnls),
-                    "trader return (%)":            matched_rets * 100,
-                    "trader return (cum %)":        cumsum(matched_rets) * 100,
-                    f"{symbol} return (%)":         bench_rets * 100,
-                    f"{symbol} returns (cum %)":    cumsum(bench_rets) * 100
-                }
-            )
+    bench_ret       = diff(benchmark["close"].log())
+    bench_date      = [ date.split("T")[0] for date in benchmark["datetime"] ][1:]
+    idx             = [ bisect_left(sym_data[symbol]["ts"], date) for date in bench_date ]
+    trader_pnl      = add.reduceat(pnl, idx)
+    trader_ret      = add.reduceat(ret, idx)
+    day_df          = DataFrame(
+                        {
+                            "date":                         bench_date,
+                            "trader pnl":                   trader_pnl,
+                            "trader pnl (cum)":             cumsum(trader_pnl),
+                            "trader return (%)":            trader_ret * 100,
+                            "trader return (cum %)":        cumsum(trader_ret) * 100,
+                            f"{symbol} return (%)":         bench_ret * 100,
+                            f"{symbol} returns (cum %)":    cumsum(bench_ret) * 100
+                        }
+                    )
 
     # remaining statistics
 
-    mu_day          = matched_rets.mean()
-    sigma_day       = matched_rets.std()
-    sharpe_day      = mu_day / sigma_day * sqrt(252)
-    bench_mu_day    = mean(bench_rets)
-    bench_sig_day   = std(bench_rets)
-    bench_sharpe    = bench_mu_day / bench_sig_day * sqrt(252)
-    diff_days       = set(bench_days) - set(trader_days)
-    sharpe_res      = sharpe_htest(bench_rets, matched_rets, RFR, 0.05)
+    trader_mu       = trader_ret.mean()
+    trader_sig      = trader_ret.std()
+    trader_sharpe   = trader_mu / trader_sig * sqrt(252)
+    bench_mu        = mean(bench_ret)
+    bench_sig       = std(bench_ret)
+    bench_sharpe    = bench_mu / bench_sig * sqrt(252)
+    sharpe_res      = sharpe_htest(bench_ret, trader_ret, RFR, 0.05)
     p_eq_0          = sharpe_res["p_eq_0"]
     p_inferior      = sharpe_res["p_b_lt_a"]
     sr_diff         = sharpe_res["sr_diff"]
@@ -170,11 +139,11 @@ if __name__ == "__main__":
     print("\n(all returns are unweighted)\n")
 
     print(f"{'':20}{'trader':>20}{'benchmark':>20}\n")
-    print(f"{'daily return':20}{mu_day * 100:>19.2f}%{bench_mu_day * 100:>19.2f}%")
-    print(f"{'daily stdev':20}{sigma_day * 100:>19.2f}%{bench_sig_day * 100:>19.2f}%")
-    print(f"{'ann. return':20}{mu_day * 252 * 100:>19.2f}%{bench_mu_day * 252 * 100:>19.2f}%")
-    print(f"{'ann. stdev':20}{sigma_day * sqrt(252) * 100:>19.2f}%{bench_sig_day * sqrt(252) * 100:>19.2f}%")
-    print(f"{'sharpe':20}{sharpe_day:>20.2f}{bench_sharpe:>19.2f}")
+    print(f"{'daily return':20}{trader_mu * 100:>19.2f}%{bench_mu * 100:>19.2f}%")
+    print(f"{'daily stdev':20}{trader_sig * 100:>19.2f}%{bench_sig * 100:>19.2f}%")
+    print(f"{'ann. return':20}{trader_mu * 252 * 100:>19.2f}%{bench_mu * 252 * 100:>19.2f}%")
+    print(f"{'ann. stdev':20}{trader_sig * sqrt(252) * 100:>19.2f}%{bench_sig * sqrt(252) * 100:>19.2f}%")
+    print(f"{'sharpe':20}{trader_sharpe:>20.2f}{bench_sharpe:>19.2f}")
 
     # pnl chart
 
@@ -233,12 +202,12 @@ if __name__ == "__main__":
 
     fig = go.Figure()
 
-    adjusted_rets = cumsum(bench_rets * std(matched_rets) / std(bench_rets))
+    adjusted_ret = bench_ret * trader_sig / bench_sig
 
     traces = [
-        ( cumsum(matched_rets), "trader", "#0000FF" ),
-        ( cumsum(bench_rets), f"{symbol}", "#FF0000" ),
-        ( adjusted_rets, f"{symbol} (adjusted)", "#FF00FF" )
+        ( cumsum(trader_ret), "trader", "#0000FF" ),
+        ( cumsum(trader_mu), f"{symbol}", "#FF0000" ),
+        ( cumsum(adjusted_ret), f"{symbol} (adjusted)", "#FF00FF" )
     ]
 
     for trace in traces:
@@ -246,7 +215,7 @@ if __name__ == "__main__":
         fig.add_trace(
             go.Scatter(
                 {
-                    "x":        bench_days,
+                    "x":        bench_date,
                     "y":        trace[0],
                     "name":     trace[1],
                     "marker":   { "color": trace[2] }
@@ -260,25 +229,35 @@ if __name__ == "__main__":
     # monte carlo permutation
 
     sampling_dist   = []
-    mu_sym          = mean(logs)
-    logs            = logs - mu_sym     # detrend
+
+    # detrend
+    
+    sym_mu          = mean(logs)
+    logs            = logs - sym_mu
     rng             = default_rng()
 
-    for _ in range(N):
+    t1 = time()
+
+    for i in range(N):
 
         rng.shuffle(logs)
 
-        mu_i = mean(position * logs)
+        r_      = add.reduceat(position_r * logs, idx)
+        mu_i    = mean(r_)
         
         sampling_dist.append(mu_i)
+
+        if i % 100 == 0:
+            
+            print(f"iter {i}/{N}, {time() - t1:0.1f}s\r")
 
     fig = go.Figure()
 
     fig.add_trace(go.Histogram(x = sampling_dist, name = "sampling distribution (mean return)"))
-    fig.add_vline(x = mu_sec, line_color = "#FF00FF")
+    fig.add_vline(x = trader_mu, line_color = "#FF00FF")
 
     sampling_dist   = sorted(sampling_dist)
-    i               = bisect_left(sampling_dist, mu_sec)
+    i               = bisect_left(sampling_dist, trader_mu)
     p_val           = 1 - i / len(sampling_dist)
 
     fig.show()
@@ -287,7 +266,7 @@ if __name__ == "__main__":
 
     print(f"{'num samples':20}{N:>20}")
     print(f"{'return period:':20}{'1 second':>20}")
-    print(f"{'trader mean:':20}{mu_sec * 100:>19.9f}%")
+    print(f"{'trader mean:':20}{trader_mu * 100:>19.9f}%")
     print(f"{'sampling mean:':20}{mean(sampling_dist) * 100:>19.9f}%")
     print(f"{'sampling stdev:':20}{std(sampling_dist) * 100:>19.9f}%")
     print(f"{f'p(not predictive):':20}{p_val:>19.2f}")
