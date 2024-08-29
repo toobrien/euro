@@ -17,7 +17,7 @@ from    typing                  import  List
 
 BENCHMARK   = "SPX"
 RFR         = log(1 + 0.052) / 252
-SKIP        = [ "GC" ]
+SKIP        = [ "PLTR" ]
 DEBUG       = 0
 N           = 10_000
 PARSERS     = { 
@@ -119,12 +119,13 @@ def get_daily(
                     "price":    [ row[1] for row in combined ],
                     "qty":      [ row[2] for row in combined ],
                     "pos":      position,
-                    "pnl":      pnl
+                    "pnl":      pnl,
+                    "cum_pnl":  cumsum(pnl)
                 }
         )
 
     if DEBUG == 1:
-        
+
         print(symbol, "\n")
         print(df.tail())
         print(res)
@@ -463,9 +464,17 @@ if __name__ == "__main__":
                 )
             )
 
-        fig.update_layout(
-            yaxis2 = { "overlaying": "y", "side": "right" }
-        )
+        fig.update_layout(yaxis2 = { "overlaying": "y", "side": "right" })
         fig.show()
+
+    if DEBUG == 7:
+
+        df = pl.DataFrame({
+                "date":     dates,
+                "pnl":      [ f"{x:0.2f}" for x in pnl ],
+                "pnl_cum":  cumsum(pnl)
+            })
+
+        print(df)
 
     print(f"{time() - t0:0.1f}s\n")

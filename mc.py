@@ -264,7 +264,7 @@ if __name__ == "__main__":
     print("\nmonte carlo\n")
 
     print(f"{'num samples':20}{N:>20}")
-    print(f"{'return period:':20}{'1 second':>20}")
+    print(f"{'return period:':20}{'daily':>20}")
     print(f"{'trader mean:':20}{trader_mu * 100:>19.2f}%")
     print(f"{'sampling mean:':20}{mean(sampling_dist) * 100:>19.2f}%")
     print(f"{'sampling stdev:':20}{std(sampling_dist) * 100:>19.2f}%")

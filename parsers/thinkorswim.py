@@ -46,11 +46,15 @@ def parse(in_fn: str):
 
                 continue
 
-            if "/" in symbol:
+            if ":" in symbol:
 
                 # future
 
                 symbol = symbol.split(":")[0][1:-3]
+
+                if symbol == "MNQ":
+
+                    pass
 
                 if FUT_DEFS[symbol]["alias"]:
 
