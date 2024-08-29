@@ -32,7 +32,7 @@ pl.Config.set_tbl_rows(-1)
 pl.Config.set_tbl_cols(-1)
 
 
-# python pfs.py tydal_in America/New_York thinkorswim xxxxxx.xx:xxxxx.xx 0
+# python pfs.py tydal_in America/New_York thinkorswim xxxxxx.xx:xxxxx.xx:00000.xx 0
 
 
 def get_daily(
@@ -258,7 +258,10 @@ if __name__ == "__main__":
     in_fn               = join(".", "csvs", f"{argv[1]}.csv")
     tz                  = argv[2]
     parser              = PARSERS[argv[3]]
-    init_balance, fees  = [ float(x) for x in argv[4].split(":") ]
+    inits               = [ float(x) for x in argv[4].split(":") ]
+    init_balance        = inits[0]
+    fees                = inits[1]
+    adjustment          = inits[2] # adjust total pnl to account for data discrepancies
     DEBUG               = int(argv[5])
     in_rows             = parser.parse(in_fn)
     in_rows             = [ row for row in in_rows if row[in_row.symbol] not in SKIP ]
@@ -324,7 +327,8 @@ if __name__ == "__main__":
     # trader statistics
 
     avg_fee             =  fees / len(bench_pnl)
-    pnl                 =  [ sum(pnls[date]) - avg_fee for date in dates ]
+    avg_adjustment      =  adjustment / len(bench_pnl)
+    pnl                 =  [ sum(pnls[date]) - avg_fee + avg_adjustment for date in dates ]
     balance             =  cumsum([ init_balance ] + pnl)
     returns             =  array([ log(balance[i] / balance[i - 1]) for i in range(1, len(balance)) ])
     cum_ret             =  cumsum(returns)
@@ -409,6 +413,7 @@ if __name__ == "__main__":
     print(f"{'initial balance':20}{init_balance:>15.2f}")
     print(f"{'gross pnl':20}{balance[-1] - init_balance + fees:>15.2f}")
     print(f"{'fees':20}{fees:>15.2f}")
+    print(f"{'adjustment':20}{adjustment:15.2f}")
     print(f"{'net pnl':20}{balance[-1] - init_balance:>15.2f}")
     print(f"{'ending balance':20}{balance[-1]:>15.2f}")
     print(f"{'return':20}{(balance[-1] / init_balance - 1) * 100:>15.2f}%")
