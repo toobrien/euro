@@ -412,7 +412,7 @@ if __name__ == "__main__":
     print("\n-----\n")
     print(f"{'initial balance':20}{init_balance:>15.2f}")
     print(f"{'gross pnl':20}{balance[-1] - init_balance + fees:>15.2f}")
-    print(f"{'fees':20}{fees:>15.2f}")
+    print(f"{'fees':20}{-fees:>15.2f}")
     print(f"{'adjustment':20}{adjustment:15.2f}")
     print(f"{'net pnl':20}{balance[-1] - init_balance:>15.2f}")
     print(f"{'ending balance':20}{balance[-1]:>15.2f}")

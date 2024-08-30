@@ -32,8 +32,6 @@ def parse(in_fn: str):
         desc    = row[3].split()
         err     = False
 
-
-
         try:
 
             qty     = float(desc[1].replace(",", ""))

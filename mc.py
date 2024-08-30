@@ -139,10 +139,10 @@ if __name__ == "__main__":
     print("\n(all returns are unweighted)\n")
 
     print(f"{'':20}{'trader':>20}{'benchmark':>20}\n")
-    print(f"{'daily return':20}{trader_mu * 100:>19.2f}%{bench_mu * 100:>19.2f}%")
-    print(f"{'daily stdev':20}{trader_sig * 100:>19.2f}%{bench_sig * 100:>19.2f}%")
-    print(f"{'ann. return':20}{trader_mu * 252 * 100:>19.2f}%{bench_mu * 252 * 100:>19.2f}%")
-    print(f"{'ann. stdev':20}{trader_sig * sqrt(252) * 100:>19.2f}%{bench_sig * sqrt(252) * 100:>19.2f}%")
+    print(f"{'daily return':20}{trader_mu * 100:>20.2f}%{bench_mu * 100:>19.2f}%")
+    print(f"{'daily stdev':20}{trader_sig * 100:>20.2f}%{bench_sig * 100:>19.2f}%")
+    print(f"{'ann. return':20}{trader_mu * 252 * 100:>20.2f}%{bench_mu * 252 * 100:>19.2f}%")
+    print(f"{'ann. stdev':20}{trader_sig * sqrt(252) * 100:>20.2f}%{bench_sig * sqrt(252) * 100:>19.2f}%")
     print(f"{'sharpe':20}{trader_sharpe:>20.2f}{bench_sharpe:>19.2f}")
 
     # pnl chart
