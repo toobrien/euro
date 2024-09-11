@@ -3,7 +3,7 @@ from    bisect                  import  bisect_left
 from    datetime                import  datetime, timedelta
 from    os.path                 import  join
 from    math                    import  sqrt
-from    numpy                   import  add, array, cumsum, diff, log, mean, nonzero, std, zeros
+from    numpy                   import  add, cumsum, diff, log, mean, nonzero, std, zeros
 from    numpy.random            import  default_rng
 from    polars                  import  DataFrame, col, Config, read_csv
 import  plotly.graph_objects    as      go

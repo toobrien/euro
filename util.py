@@ -3,7 +3,7 @@ from    datetime    import  datetime
 from    config      import  DBN_PATH, FUT_DEFS, SC_PATH, SC_TZ, SPX_PATH, TS_FMT
 from    enum        import  IntEnum
 from    numpy       import  array, corrcoef, mean, sqrt, var
-from    os.path     import  join
+from    os.path     import  join, normpath
 import  polars      as      pl
 from    pytz        import  timezone
 from    scipy.stats import  norm
@@ -59,20 +59,21 @@ def get_sc_df(
 ) -> pl.DataFrame:
     
 
-    suffix = ".scid_BarData.txt" if not daily else ".dly_BarData.txt"
-
-    df  = pl.read_csv(
-            join(SC_PATH, f"{symbol}{suffix}"),
-            new_columns         = [ "date", "time", "open", "high", "low", "close" ],
-            schema_overrides    = {
-                                    "Date":     str,
-                                    " Time":    str,
-                                    " Open":    pl.Float32,
-                                    " High":    pl.Float32,
-                                    " Low":     pl.Float32,
-                                    " Last":    pl.Float32,
-                                }
-        )
+    suffix  = ".scid_BarData.txt" if not daily else ".dly_BarData.txt"
+    fn      = join(SC_PATH, f"{symbol}{suffix}")
+    fd      = open(fn, "r") # polars can't read fn for some reason
+    df      = pl.read_csv(
+                source              = fd,
+                new_columns         = [ "date", "time", "open", "high", "low", "close" ],
+                schema_overrides    = {
+                                        "Date":     str,
+                                        " Time":    str,
+                                        " Open":    pl.Float32,
+                                        " High":    pl.Float32,
+                                        " Low":     pl.Float32,
+                                        " Last":    pl.Float32,
+                                    }
+            )
     
     if daily:
 
