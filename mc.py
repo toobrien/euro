@@ -202,12 +202,19 @@ if __name__ == "__main__":
 
     fig = go.Figure()
 
-    adjusted_ret = bench_ret * trader_sig / bench_sig
+    adjusted_ret    = bench_ret * trader_sig / bench_sig
+    mu_y            = [ trader_mu * (i + 1) for i in range(len(trader_ret)) ]
+    up_band         = [ mu_y[i] + trader_sig * sqrt((i + 1)) for i in range(len(trader_ret)) ]
+    dn_band         = [ mu_y[i] - trader_sig * sqrt((i + 1)) for i in range(len(trader_ret)) ]
+
 
     traces = [
         ( cumsum(trader_ret), "trader", "#0000FF" ),
         ( cumsum(bench_ret), f"{symbol}", "#FF0000" ),
-        ( cumsum(adjusted_ret), f"{symbol} (adjusted)", "#FF00FF" )
+        ( cumsum(adjusted_ret), f"{symbol} (adjusted)", "#FF00FF" ),
+        ( mu_y, "mean trader return", "#CCCCCC" ),
+        ( up_band, "+1 std trader return", "#CCCCCC" ),
+        ( dn_band, "-1 std trader return", "#CCCCCC" )
     ]
 
     for trace in traces:
